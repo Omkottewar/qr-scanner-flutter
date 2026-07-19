@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../core/error_messages.dart';
+import '../../core/ist_time.dart';
 import '../../core/theme/app_colors.dart';
 import '../../data/api_client.dart';
 import '../qr/qr_view_screen.dart';
@@ -609,18 +610,13 @@ class _QrCard extends StatelessWidget {
   final bool deleting;
 
   String _formatDate(String? dateStr) {
-    if (dateStr == null || dateStr.isEmpty) return '—';
-    var s = dateStr;
-    final hasOffset =
-        s.endsWith('Z') || RegExp(r'[+\-]\d{2}:?\d{2}$').hasMatch(s);
-    if (!hasOffset) s = '${s}Z';
-    final d = DateTime.tryParse(s)?.toLocal();
-    if (d == null) return dateStr;
-    const months = [
-      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
-    ];
-    return '${d.day.toString().padLeft(2, '0')} ${months[d.month - 1]} ${d.year}';
+    final utc = IstTime.parseUtc(dateStr);
+    if (utc == null) {
+      return (dateStr == null || dateStr.isEmpty) ? '—' : dateStr;
+    }
+    final ist = IstTime.toIst(utc);
+    return '${ist.day.toString().padLeft(2, '0')} '
+        '${IstTime.monthsShort[ist.month - 1]} ${ist.year}';
   }
 
   @override

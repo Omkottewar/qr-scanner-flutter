@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/error_messages.dart';
+import '../../core/ist_time.dart';
 import '../../core/theme/app_colors.dart';
 import '../../data/api_client.dart';
 import '../widgets/glass_card.dart';
@@ -85,23 +86,15 @@ class _AlertsTabState extends State<AlertsTab> {
   }
 
   String _relativeTime(String? iso) {
-    if (iso == null || iso.isEmpty) return '—';
-    var s = iso;
-    final hasOffset =
-        s.endsWith('Z') || RegExp(r'[+\-]\d{2}:?\d{2}$').hasMatch(s);
-    if (!hasOffset) s = '${s}Z';
-    final d = DateTime.tryParse(s);
-    if (d == null) return iso;
-    final diff = DateTime.now().difference(d.toLocal());
+    final utc = IstTime.parseUtc(iso);
+    if (utc == null) return (iso == null || iso.isEmpty) ? '—' : iso;
+    final diff = IstTime.since(utc);
     if (diff.inSeconds < 60) return 'just now';
     if (diff.inMinutes < 60) return '${diff.inMinutes} min ago';
     if (diff.inHours < 24) return '${diff.inHours}h ago';
     if (diff.inDays < 7) return '${diff.inDays}d ago';
-    const months = [
-      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
-    ];
-    return '${d.day} ${months[d.month - 1]}';
+    final ist = IstTime.toIst(utc);
+    return '${ist.day} ${IstTime.monthsShort[ist.month - 1]}';
   }
 
   @override

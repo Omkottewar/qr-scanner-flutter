@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../core/ist_time.dart';
 import '../../core/theme/app_colors.dart';
 import '../../data/api_client.dart';
 import '../widgets/glass_card.dart';
@@ -49,27 +50,12 @@ class _CallerActivityScreenState extends State<CallerActivityScreen> {
   }
 
   String _formatDate(String? dateStr) {
-    if (dateStr == null || dateStr.isEmpty) return '—';
-    // Postgres TIMESTAMPTZ serialised through pg/JSON.stringify comes as
-    // '2026-07-07T04:15:00.123Z' — with the trailing Z it's parsed as UTC.
-    // If the Z happens to be missing (some serializers strip it), DateTime.
-    // tryParse would interpret the string as local time, which is a common
-    // source of "5 hours 30 minutes off" bugs in India. Force UTC when
-    // there's no offset marker, then convert to local for display.
-    var s = dateStr;
-    final hasOffset =
-        s.endsWith('Z') || RegExp(r'[+\-]\d{2}:?\d{2}$').hasMatch(s);
-    if (!hasOffset) s = '${s}Z';
-    final d = DateTime.tryParse(s);
-    if (d == null) return dateStr;
-    final local = d.toLocal();
-    const months = [
-      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
-    ];
-    final hh = local.hour.toString().padLeft(2, '0');
-    final mm = local.minute.toString().padLeft(2, '0');
-    return '${local.day} ${months[local.month - 1]} · $hh:$mm';
+    final utc = IstTime.parseUtc(dateStr);
+    if (utc == null) return (dateStr == null || dateStr.isEmpty) ? '—' : dateStr;
+    final ist = IstTime.toIst(utc);
+    final hh = ist.hour.toString().padLeft(2, '0');
+    final mm = ist.minute.toString().padLeft(2, '0');
+    return '${ist.day} ${IstTime.monthsShort[ist.month - 1]} · $hh:$mm';
   }
 
   @override

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/error_messages.dart';
+import '../../core/ist_time.dart';
 import '../../core/theme/app_colors.dart';
 import '../../data/api_client.dart';
 import '../widgets/ea_card.dart';
@@ -166,26 +167,17 @@ class CallHistoryTabState extends State<CallHistoryTab> {
   }
 
   String _formatDateTime(String? dtStr) {
-    if (dtStr == null || dtStr.isEmpty) return '—';
-    var s = dtStr;
-    final hasOffset =
-        s.endsWith('Z') || RegExp(r'[+\-]\d{2}:?\d{2}$').hasMatch(s);
-    if (!hasOffset) s = '${s}Z';
-    final d = DateTime.tryParse(s);
-    if (d == null) return dtStr;
-    final local = d.toLocal();
-    const months = [
-      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
-    ];
-    final now = DateTime.now();
-    final showYear = local.year != now.year;
-    final day = local.day.toString().padLeft(2, '0');
-    final mon = months[local.month - 1];
-    final hh = local.hour.toString().padLeft(2, '0');
-    final mm = local.minute.toString().padLeft(2, '0');
+    final utc = IstTime.parseUtc(dtStr);
+    if (utc == null) return (dtStr == null || dtStr.isEmpty) ? '—' : dtStr;
+    final ist = IstTime.toIst(utc);
+    final nowIst = IstTime.toIst(DateTime.now().toUtc());
+    final showYear = ist.year != nowIst.year;
+    final day = ist.day.toString().padLeft(2, '0');
+    final mon = IstTime.monthsShort[ist.month - 1];
+    final hh = ist.hour.toString().padLeft(2, '0');
+    final mm = ist.minute.toString().padLeft(2, '0');
     return showYear
-        ? '$day $mon ${local.year} · $hh:$mm'
+        ? '$day $mon ${ist.year} · $hh:$mm'
         : '$day $mon · $hh:$mm';
   }
 

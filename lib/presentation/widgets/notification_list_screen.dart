@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../core/ist_time.dart';
 import '../../core/theme/app_colors.dart';
 import '../../data/api_client.dart';
 import 'ea_card.dart';
@@ -77,17 +78,14 @@ class _NotificationListScreenState extends State<NotificationListScreen> {
   }
 
   String _formatDateTime(String dtStr) {
-    try {
-      final parsed = DateTime.parse(dtStr).toLocal();
-      final year = parsed.year;
-      final month = parsed.month.toString().padLeft(2, '0');
-      final day = parsed.day.toString().padLeft(2, '0');
-      final hour = parsed.hour.toString().padLeft(2, '0');
-      final minute = parsed.minute.toString().padLeft(2, '0');
-      return '$day-$month-$year $hour:$minute';
-    } catch (_) {
-      return dtStr;
-    }
+    final utc = IstTime.parseUtc(dtStr);
+    if (utc == null) return dtStr;
+    final ist = IstTime.toIst(utc);
+    final month = ist.month.toString().padLeft(2, '0');
+    final day = ist.day.toString().padLeft(2, '0');
+    final hour = ist.hour.toString().padLeft(2, '0');
+    final minute = ist.minute.toString().padLeft(2, '0');
+    return '$day-$month-${ist.year} $hour:$minute';
   }
 
   @override

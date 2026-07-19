@@ -144,9 +144,41 @@ class _PaymentScreenState extends State<PaymentScreen> {
       // (response might have been lost in transit or a prior attempt
       // may have succeeded server-side). If yes, recover by fetching
       // the QR from history and moving to the success screen.
-      debugPrint('[qr/create] failed after razorpay success: $e');
+      debugPrint('[qr/create] [CRITICAL] payment succeeded but QR creation failed '
+          'order=$orderId payment=$paymentId error=$e');
+      // Fire a telemetry event so this "money taken, QR not created"
+      // condition shows up in Render logs alongside every other Razorpay
+      // event. Use a distinctive event name for easy grep-based alerting.
+      PaymentTracker.report(
+        event: 'qr_creation_failed_after_payment',
+        orderId: orderId,
+        description: 'Payment succeeded (paymentId=$paymentId) but /qr/create '
+            'failed. First recovery attempt will now query /payments/status.',
+        source: 'qr_create',
+        raw: {
+          'error': e.toString(),
+          'payment_id': paymentId,
+          'signature_present': signature.isNotEmpty,
+        },
+      );
       final recovered = await _tryRecoverFromPaymentStatus(orderId);
       if (recovered) return;
+      // Recovery failed too — this is the truly-stuck state. Emit a
+      // second, louder telemetry line so it's obvious in dashboards
+      // that a human needs to reconcile this order manually.
+      debugPrint('[qr/create] [CRITICAL] recovery via /payments/status also '
+          'failed order=$orderId — manual reconciliation required');
+      PaymentTracker.report(
+        event: 'qr_creation_stuck',
+        orderId: orderId,
+        description: 'Payment verified server-side but QR still not created '
+            'after recovery poll. Manual reconciliation required.',
+        source: 'qr_create',
+        raw: {
+          'error': e.toString(),
+          'payment_id': paymentId,
+        },
+      );
       _completing = false; // real failure — let the user retry
       if (!mounted) return;
       // Post-payment failures deserve a proper dialog with recovery
@@ -292,68 +324,204 @@ class _PaymentScreenState extends State<PaymentScreen> {
     );
   }
 
-Future<void> _onRazorpaySuccess(PaymentSuccessResponse r) async {
-  // Server-side visibility for the "SDK said yes" moment. Fire before
-  // /qr/create so even a subsequent /qr/create failure leaves a trace
-  // in Render logs proving the customer's card WAS charged.
-  PaymentTracker.report(
-    event: 'success',
-    orderId: r.orderId ?? _orderId,
-    source: 'qr_create',
-    raw: {
-      'payment_id': r.paymentId,
-      'signature_present': (r.signature ?? '').isNotEmpty,
-    },
-  );
-  await _completeCreate(
-    orderId: r.orderId ?? '',
-    paymentId: r.paymentId ?? '',
-    signature: r.signature ?? '',
-  );
-}
+  Future<void> _onRazorpaySuccess(PaymentSuccessResponse r) async {
+    // Razorpay's SDK invokes this from a native thread — any unhandled
+    // exception here silently disappears and the user is left staring
+    // at a spinner or a stale screen after paying. Wrap the entire body
+    // so every failure path gets logged and telemetered.
+    final orderId = r.orderId ?? _orderId ?? '';
+    final paymentId = r.paymentId ?? '';
+    final signature = r.signature ?? '';
+    try {
+      // Server-side visibility for the "SDK said yes" moment. Fire before
+      // /qr/create so even a subsequent /qr/create failure leaves a trace
+      // in Render logs proving the customer's card WAS charged.
+      debugPrint('[razorpay/success] order=$orderId payment=$paymentId '
+          'signature_present=${signature.isNotEmpty}');
+      PaymentTracker.report(
+        event: 'success',
+        orderId: orderId.isEmpty ? null : orderId,
+        source: 'qr_create',
+        raw: {
+          'payment_id': paymentId,
+          'signature_present': signature.isNotEmpty,
+        },
+      );
+      await _completeCreate(
+        orderId: orderId,
+        paymentId: paymentId,
+        signature: signature,
+      );
+    } catch (e, st) {
+      // If we reach here, something outside _completeCreate's own
+      // try/catch threw — likely a bug in our own success handler.
+      // Log loudly so it doesn't fall on the floor.
+      debugPrint('[razorpay/success] [CRITICAL] unhandled exception in '
+          '_onRazorpaySuccess order=$orderId payment=$paymentId error=$e\n$st');
+      PaymentTracker.report(
+        event: 'success_handler_crashed',
+        orderId: orderId.isEmpty ? null : orderId,
+        source: 'qr_create',
+        description: 'Unhandled exception inside _onRazorpaySuccess after '
+            'Razorpay confirmed payment. Manual reconciliation required.',
+        raw: {
+          'error': e.toString(),
+          'payment_id': paymentId,
+          'stack': st.toString().split('\n').take(6).join(' | '),
+        },
+      );
+      if (!mounted) return;
+      _completing = false;
+      setState(() => _loading = false);
+      _showPostPaymentFailureDialog(
+        orderId: orderId,
+        paymentId: paymentId,
+        signature: signature,
+        error: e,
+      );
+    }
+  }
 
   void _onRazorpayError(PaymentFailureResponse r) {
     if (!mounted) return;
-    // Razorpay SDK fires this for both "payment failed" AND "user
-    // dismissed the modal" (code=2 / BAD_REQUEST_ERROR with a
-    // "cancelled" message). Distinguish the two so the copy is honest.
-    final rawMsg = (r.message ?? '').toLowerCase();
-    final isDismiss = rawMsg.contains('cancel') || rawMsg.contains('dismiss');
-    // Report to backend so Render logs capture the failure. This is the
-    // one class of failure that otherwise NEVER touches our server —
-    // without this line, declined cards and network drops during the
-    // Razorpay modal are completely invisible in production.
-    PaymentTracker.report(
-      event: isDismiss ? 'dismiss' : 'failure',
-      orderId: _orderId,
-      code: r.code?.toString(),
-      description: r.message,
-      source: 'qr_create',
-      raw: {
-        if (r.error != null) 'error': r.error.toString(),
-      },
-    );
-    final display = isDismiss
-        ? 'Payment cancelled — you can try again anytime.'
-        : _friendlyRazorpayFailure(r);
-    // In both cases we leave the pending-order marker in place so the
-    // recovery flow on next launch can double-check the status —
-    // Razorpay's own webhooks can beat this event to the backend.
+    try {
+      // Razorpay SDK fires this for both "payment failed" AND "user
+      // dismissed the modal" (code=2 / BAD_REQUEST_ERROR with a
+      // "cancelled" message). Distinguish the two so the copy is honest.
+      final rawMsg = (r.message ?? '').toLowerCase();
+      final isDismiss = rawMsg.contains('cancel') || rawMsg.contains('dismiss');
+      debugPrint('[razorpay/error] order=${_orderId ?? '(none)'} '
+          'code=${r.code} message=${r.message} isDismiss=$isDismiss');
+      // Report to backend so Render logs capture the failure. This is
+      // the one class of failure that otherwise NEVER touches our
+      // server — without this line, declined cards and network drops
+      // during the Razorpay modal are completely invisible in prod.
+      PaymentTracker.report(
+        event: isDismiss ? 'dismiss' : 'failure',
+        orderId: _orderId,
+        code: r.code?.toString(),
+        description: r.message,
+        source: 'qr_create',
+        raw: {
+          if (r.error != null) 'error': r.error.toString(),
+        },
+      );
+
+      // Modal dismissal is unambiguous — the user hit the X. No
+      // recovery possible; go straight to a friendly toast.
+      if (isDismiss) {
+        setState(() => _loading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+              content: Text('Payment cancelled — you can try again anytime.')),
+        );
+        return;
+      }
+
+      // NOT a dismiss — could be UPI Collect timeout while NPCI is still
+      // processing. Race Razorpay's webhook: poll /payments/status for a
+      // few seconds. If webhook confirms payment.captured, continue the
+      // QR-creation flow using the server-derived payment_id (no client
+      // signature — server trusts its own HMAC-verified webhook row).
+      _reconcileAfterClientError(r);
+    } catch (e, st) {
+      debugPrint('[razorpay/error] [CRITICAL] unhandled exception in '
+          '_onRazorpayError order=${_orderId ?? '(none)'} error=$e\n$st');
+      PaymentTracker.report(
+        event: 'error_handler_crashed',
+        orderId: _orderId,
+        source: 'qr_create',
+        description: 'Unhandled exception inside _onRazorpayError',
+        raw: {
+          'error': e.toString(),
+          'stack': st.toString().split('\n').take(6).join(' | '),
+        },
+      );
+      if (!mounted) return;
+      setState(() => _loading = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(ErrorMessages.friendly(e))),
+      );
+    }
+  }
+
+  // Polls /payments/status/:orderId briefly after a Razorpay client-side
+  // failure. If the payment turns out to be verified server-side within
+  // the window, we complete /qr/create and take the user to success.
+  // Otherwise we fall through to the standard failure dialog.
+  Future<void> _reconcileAfterClientError(PaymentFailureResponse r) async {
+    final orderId = _orderId ?? '';
+    if (orderId.isEmpty) {
+      setState(() => _loading = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(_friendlyRazorpayFailure(r))),
+      );
+      return;
+    }
+
+    // Give the webhook up to ~12s to arrive. UPI captures usually land
+    // within 2–5s after the client-side timeout fires; 12s is generous.
+    setState(() => _loading = true);
+    const attempts = 6;
+    const delayMs = 2000;
+    String? verifiedPaymentId;
+    for (var i = 0; i < attempts; i++) {
+      await Future<void>.delayed(const Duration(milliseconds: delayMs));
+      if (!mounted) return;
+      try {
+        final res = await ApiClient.instance.get('/payments/status/$orderId');
+        if (res is Map && res['found'] == true) {
+          final status = res['status']?.toString();
+          if (status == 'verified') {
+            verifiedPaymentId = res['razorpay_payment_id']?.toString();
+            break;
+          }
+          if (status == 'failed') break; // real failure, stop polling
+        }
+      } catch (e) {
+        debugPrint('[payment] reconcile poll error: $e');
+      }
+    }
+
+    if (!mounted) return;
+
+    if (verifiedPaymentId != null && verifiedPaymentId.isNotEmpty) {
+      // Webhook confirmed the payment. Continue as if success — the
+      // server will trust its own webhook row and skip signature check.
+      debugPrint('[payment] webhook confirmed after client error → completing QR');
+      await _completeCreate(
+        orderId: orderId,
+        paymentId: verifiedPaymentId,
+        signature: '', // empty — server trusts the webhook-verified row
+      );
+      return;
+    }
+
+    // Genuine failure — surface the friendly copy. Marker stays so the
+    // next launch can double-check.
     setState(() => _loading = false);
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(display)));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(_friendlyRazorpayFailure(r))),
+    );
   }
 
   // Razorpay SDK's EVENT_EXTERNAL_WALLET fires for the "pay with a
   // wallet app" path; we don't handle those specially, but need the
   // listener attached so the SDK doesn't warn about unhandled events.
   void _onExternalWallet(ExternalWalletResponse r) {
-    debugPrint('[razorpay] external wallet: ${r.walletName}');
-    PaymentTracker.report(
-      event: 'external_wallet',
-      orderId: _orderId,
-      description: r.walletName,
-      source: 'qr_create',
-    );
+    try {
+      debugPrint('[razorpay/external-wallet] wallet=${r.walletName} '
+          'order=${_orderId ?? '(none)'}');
+      PaymentTracker.report(
+        event: 'external_wallet',
+        orderId: _orderId,
+        description: r.walletName,
+        source: 'qr_create',
+      );
+    } catch (e, st) {
+      debugPrint('[razorpay/external-wallet] [CRITICAL] unhandled exception '
+          'wallet=${r.walletName} error=$e\n$st');
+    }
   }
 
   // Turn a raw Razorpay PaymentFailureResponse into human copy. Their
@@ -395,37 +563,64 @@ Future<void> _onRazorpaySuccess(PaymentSuccessResponse r) async {
   }
 
   void _openCheckout() {
-    if (_demoMode) {
-      _completeCreate(
-        orderId: _orderId ?? 'order_dev',
-        paymentId: 'pay_dev_${DateTime.now().millisecondsSinceEpoch}',
-        signature: 'dev_sig',
-      );
-      return;
-    }
-    if (_orderId == null || _keyId == null || _amountPaise == null) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Order not ready')));
-      return;
-    }
-    _rz ??= Razorpay();
-    _rz!
-      ..on(Razorpay.EVENT_PAYMENT_SUCCESS, _onRazorpaySuccess)
-      ..on(Razorpay.EVENT_PAYMENT_ERROR, _onRazorpayError)
-      ..on(Razorpay.EVENT_EXTERNAL_WALLET, _onExternalWallet);
+    try {
+      if (_demoMode) {
+        _completeCreate(
+          orderId: _orderId ?? 'order_dev',
+          paymentId: 'pay_dev_${DateTime.now().millisecondsSinceEpoch}',
+          signature: 'dev_sig',
+        );
+        return;
+      }
+      if (_orderId == null || _keyId == null || _amountPaise == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Order not ready')),
+        );
+        return;
+      }
+      _rz ??= Razorpay();
+      _rz!
+        ..on(Razorpay.EVENT_PAYMENT_SUCCESS, _onRazorpaySuccess)
+        ..on(Razorpay.EVENT_PAYMENT_ERROR, _onRazorpayError)
+        ..on(Razorpay.EVENT_EXTERNAL_WALLET, _onExternalWallet);
 
-    final options = {
-      'key': _keyId,
-      'amount': _amountPaise,
-      'currency': 'INR',
-      'name': 'Emergency Alert',
-      'description': 'QR 4 Emergency — Lifetime (one-time)',
-      'order_id': _orderId,
-      'prefill': {
-        'contact': widget.draft.mobile,
-        'email': widget.draft.email,
-      },
-    };
-    _rz!.open(options);
+      final options = {
+        'key': _keyId,
+        'amount': _amountPaise,
+        'currency': 'INR',
+        'name': 'Emergency Alert',
+        'description': 'QR 4 Emergency — Lifetime (one-time)',
+        'order_id': _orderId,
+        'prefill': {
+          'contact': widget.draft.mobile,
+          'email': widget.draft.email,
+        },
+      };
+      debugPrint('[razorpay/open] order=$_orderId amount=$_amountPaise '
+          'key=${_keyId?.substring(0, 8)}...');
+      _rz!.open(options);
+    } catch (e, st) {
+      // Rare, but possible: Razorpay SDK can throw synchronously if the
+      // options are malformed or the plugin isn't initialised. Without
+      // this catch the user sees a frozen UI with no explanation.
+      debugPrint('[razorpay/open] [CRITICAL] failed to open checkout '
+          'order=${_orderId ?? '(none)'} error=$e\n$st');
+      PaymentTracker.report(
+        event: 'checkout_open_failed',
+        orderId: _orderId,
+        source: 'qr_create',
+        description: 'Razorpay SDK threw when opening the checkout modal.',
+        raw: {
+          'error': e.toString(),
+          'stack': st.toString().split('\n').take(6).join(' | '),
+        },
+      );
+      if (!mounted) return;
+      setState(() => _loading = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(ErrorMessages.friendly(e))),
+      );
+    }
   }
 
   @override
