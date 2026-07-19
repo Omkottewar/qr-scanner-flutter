@@ -11,6 +11,7 @@ class QrViewScreen extends StatelessWidget {
     required this.ownerName,
     required this.bloodGroup,
     this.familyCount,
+    this.isManual = false,
   });
 
   final String alertUrl;
@@ -19,6 +20,7 @@ class QrViewScreen extends StatelessWidget {
   final String ownerName;
   final String bloodGroup;
   final int? familyCount;
+  final bool isManual;
 
   @override
   Widget build(BuildContext context) {
@@ -35,6 +37,7 @@ class QrViewScreen extends StatelessWidget {
             ownerName: ownerName,
             bloodGroup: bloodGroup,
             familyCount: familyCount,
+            isManual: isManual,
           ),
         ),
       ),

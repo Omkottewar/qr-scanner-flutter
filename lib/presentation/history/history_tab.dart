@@ -207,6 +207,10 @@ class HistoryTabState extends State<HistoryTab> {
           familyCount: row['family_count'] is int
               ? row['family_count'] as int
               : int.tryParse('${row['family_count']}'),
+          // Manual QRs are printed before the vehicle is known, so the
+          // in-app sticker matches the physical one by hiding the
+          // vehicle line. is_manual comes straight from qrdata.
+          isManual: row['is_manual'] == true || row['is_manual'] == 1,
         ),
       ),
     );

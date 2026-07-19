@@ -24,6 +24,7 @@ class QrDetailCard extends StatefulWidget {
     required this.ownerName,
     required this.bloodGroup,
     this.familyCount,
+    this.isManual = false,
   });
 
   final String alertUrl;
@@ -32,6 +33,10 @@ class QrDetailCard extends StatefulWidget {
   final String ownerName;
   final String bloodGroup;
   final int? familyCount; // shown as "N EMERGENCY BRANCHES"; hidden if null
+  // Manual QRs are printed BEFORE the customer's vehicle is known, so
+  // the physical sticker has no vehicle number on it. Reflecting that
+  // in-app so what the customer sees matches what's on their windshield.
+  final bool isManual;
 
   @override
   State<QrDetailCard> createState() => _QrDetailCardState();
@@ -107,14 +112,21 @@ class _QrDetailCardState extends State<QrDetailCard> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          // FittedBox uniformly scales the fixed-width sticker design
+          // down to whatever horizontal space the parent card gives us,
+          // so text like "QR 4 EMERGENCY" and "BE NAYAK" never wraps.
           Center(
-            child: RepaintBoundary(
-              key: _captureKey,
-              child: _StickerSurface(
-                alertUrl: widget.alertUrl,
-                digits: widget.digits,
-                vehicleNumber: widget.vehicleNumber,
-                familyCount: widget.familyCount,
+            child: FittedBox(
+              fit: BoxFit.contain,
+              child: RepaintBoundary(
+                key: _captureKey,
+                child: _StickerSurface(
+                  alertUrl: widget.alertUrl,
+                  digits: widget.digits,
+                  vehicleNumber: widget.vehicleNumber,
+                  familyCount: widget.familyCount,
+                  isManual: widget.isManual,
+                ),
               ),
             ),
           ),
@@ -160,15 +172,24 @@ class _QrDetailCardState extends State<QrDetailCard> {
   }
 }
 
-/// Print-ready windshield sticker. Clean red-and-white layout — no side
-/// strips, no corner cutouts, no double borders. Rasterised on tap of
-/// Download / Share, so every pixel here ships on the physical vinyl.
+/// Print-ready windshield sticker. Layout mirrors the physical vinyl
+/// design 1:1 so what the customer sees in-app matches what they'll
+/// stick on their vehicle. Rasterised on tap of Download / Share.
+///
+/// Structure (top to bottom):
+///   1. Red header    — QR 4 EMERGENCY + SCAN TO CALL OWNER
+///   2. White body    — vehicle number in red (skipped when isManual),
+///                      corner-bracketed QR flanked by red medical
+///                      crosses, extension number pill, BE NAYAK
+///   3. Black footer  — website + support email row, then
+///                      ACCIDENT / TRACKING / NO PARKING badges
 class _StickerSurface extends StatelessWidget {
   const _StickerSurface({
     required this.alertUrl,
     required this.digits,
     required this.vehicleNumber,
     required this.familyCount,
+    required this.isManual,
   });
 
   final String alertUrl;
@@ -176,206 +197,406 @@ class _StickerSurface extends StatelessWidget {
   final String vehicleNumber;
   // ignore: unused_element_parameter
   final int? familyCount;
+  final bool isManual;
 
   @override
   Widget build(BuildContext context) {
+    // Manual QRs are printed before the vehicle is known — the physical
+    // sticker literally has no vehicle number on it. Only show the
+    // vehicle line if this is an auto (paid-during-app) QR AND the
+    // caller passed a value.
+    final showVehicle = !isManual && vehicleNumber.trim().isNotEmpty;
+
     return Container(
-      width: 320,
+      width: 360,
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(18),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.12),
+            color: Colors.black.withValues(alpha: 0.14),
             blurRadius: 24,
             offset: const Offset(0, 8),
           ),
         ],
       ),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(18),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // Header — solid red band with a phone glyph in a white circle.
+            // ── Red header band ─────────────────────────────────
             Container(
               width: double.infinity,
-              padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
               color: _kEmergencyRed,
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Container(
-                    width: 28,
-                    height: 28,
-                    alignment: Alignment.center,
-                    decoration: const BoxDecoration(
+              padding: const EdgeInsets.fromLTRB(16, 20, 16, 16),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: const [
+                  Text(
+                    'QR 4 EMERGENCY',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
                       color: Colors.white,
-                      shape: BoxShape.circle,
+                      fontSize: 38,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 0.4,
+                      height: 1.0,
                     ),
-                    child: const Icon(Icons.call_rounded,
-                        size: 16, color: _kEmergencyRed),
                   ),
-                  const SizedBox(width: 10),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
+                  SizedBox(height: 8),
+                  Text(
+                    'SCAN TO CALL OWNER',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 17,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 1.4,
+                      height: 1.0,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            // ── White body ──────────────────────────────────────
+            Padding(
+              padding: const EdgeInsets.fromLTRB(10, 12, 10, 14),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Row: [cross] [ bracketed frame: vehicle + QR ] [cross]
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      const Text(
-                        'QR 4 Emergency',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 20,
-                          fontWeight: FontWeight.w900,
-                          letterSpacing: 0.4,
-                          height: 1.0,
+                      const _MedicalCross(size: 44),
+                      const SizedBox(width: 4),
+                      Expanded(
+                        child: _CornerBracketFrame(
+                          child: Padding(
+                            padding: const EdgeInsets.fromLTRB(10, 10, 10, 10),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                if (showVehicle) ...[
+                                  Text(
+                                    vehicleNumber.toUpperCase(),
+                                    textAlign: TextAlign.center,
+                                    style: const TextStyle(
+                                      color: _kEmergencyRed,
+                                      fontSize: 22,
+                                      fontWeight: FontWeight.w900,
+                                      letterSpacing: 1.4,
+                                      height: 1.0,
+                                      fontFeatures: [
+                                        FontFeature.tabularFigures()
+                                      ],
+                                    ),
+                                  ),
+                                  const SizedBox(height: 8),
+                                ],
+                                QrImageView(
+                                  data: alertUrl,
+                                  version: QrVersions.auto,
+                                  size: 200,
+                                  backgroundColor: Colors.white,
+                                  eyeStyle: const QrEyeStyle(
+                                    eyeShape: QrEyeShape.square,
+                                    color: _kInk,
+                                  ),
+                                  dataModuleStyle: const QrDataModuleStyle(
+                                    dataModuleShape: QrDataModuleShape.square,
+                                    color: _kInk,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
                         ),
                       ),
-                      const SizedBox(height: 2),
+                      const SizedBox(width: 4),
+                      const _MedicalCross(size: 44),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  const Text(
+                    'Extension Number',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: _kInk,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                      height: 1.0,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 22, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: _kEmergencyRed,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      digits.isNotEmpty ? digits : '—',
+                      style: const TextStyle(
+                        color: _kInk,
+                        fontSize: 26,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 2.5,
+                        height: 1.1,
+                        fontFeatures: [FontFeature.tabularFigures()],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    'BE NAYAK',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: _kInk,
+                      fontSize: 38,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 2.0,
+                      height: 1.0,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            // ── Black footer ────────────────────────────────────
+            Container(
+              width: double.infinity,
+              color: Colors.black,
+              padding: const EdgeInsets.fromLTRB(10, 10, 10, 12),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Web + email row separated by green dot · pipe · green dot.
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: const [
+                      Icon(Icons.language_rounded,
+                          size: 12, color: Colors.white),
+                      SizedBox(width: 4),
                       Text(
-                        'Be Nayak',
+                        'www.qr4emergency.com',
                         style: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.85),
+                          color: Colors.white,
                           fontSize: 10,
                           fontWeight: FontWeight.w700,
-                          letterSpacing: 2.2,
-                          height: 1.0,
                         ),
+                      ),
+                      SizedBox(width: 6),
+                      _FooterDot(color: Color(0xFF22C55E)),
+                      SizedBox(width: 5),
+                      _FooterPipe(),
+                      SizedBox(width: 5),
+                      _FooterDot(color: Color(0xFF22C55E)),
+                      SizedBox(width: 6),
+                      Icon(Icons.mail_outline_rounded,
+                          size: 12, color: Colors.white),
+                      SizedBox(width: 4),
+                      Text(
+                        'support@qr4emergency.com',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  // Three feature badges, matching the printed sticker.
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: const [
+                      _FooterBadge(
+                        icon: Icons.warning_amber_rounded,
+                        iconColor: _kEmergencyRed,
+                        label: 'ACCIDENT',
+                      ),
+                      _FooterDivider(),
+                      _FooterBadge(
+                        icon: Icons.location_on_rounded,
+                        iconColor: Color(0xFF22C55E),
+                        label: 'TRACKING',
+                      ),
+                      _FooterDivider(),
+                      _FooterBadge(
+                        icon: Icons.do_not_disturb_on_outlined,
+                        iconColor: _kEmergencyRed,
+                        label: 'NO PARKING',
                       ),
                     ],
                   ),
                 ],
               ),
             ),
-
-            // Body — vehicle number, QR, extension pill.
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 20, 20, 18),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (vehicleNumber.isNotEmpty) ...[
-                    Text(
-                      'Vehicle No.',
-                      style: TextStyle(
-                        color: _kInk.withValues(alpha: 0.55),
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600,
-                        letterSpacing: 0.4,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      vehicleNumber,
-                      style: const TextStyle(
-                        color: _kInk,
-                        fontSize: 22,
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: 1.6,
-                        fontFeatures: [FontFeature.tabularFigures()],
-                      ),
-                    ),
-                    const SizedBox(height: 14),
-                  ],
-                  // QR — clean white background, thin ink-coloured frame.
-                  SizedBox.square(
-                    dimension: 224,
-                    child: Container(
-                      padding: const EdgeInsets.all(8),
-                      alignment: Alignment.center,
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        border: Border.all(
-                          color: _kInk.withValues(alpha: 0.08),
-                          width: 1,
-                        ),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: QrImageView(
-                        data: alertUrl,
-                        version: QrVersions.auto,
-                        size: 206,
-                        backgroundColor: Colors.white,
-                        eyeStyle: const QrEyeStyle(
-                          eyeShape: QrEyeShape.square,
-                          color: _kInk,
-                        ),
-                        dataModuleStyle: const QrDataModuleStyle(
-                          dataModuleShape: QrDataModuleShape.square,
-                          color: _kInk,
-                        ),
-                      ),
-                    ),
-                  ),
-                  if (digits.isNotEmpty) ...[
-                    const SizedBox(height: 16),
-                    Text(
-                      'Extension Number',
-                      style: TextStyle(
-                        color: _kInk.withValues(alpha: 0.55),
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600,
-                        letterSpacing: 0.4,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 22, vertical: 8),
-                      decoration: BoxDecoration(
-                        color: _kEmergencyRed,
-                        borderRadius: BorderRadius.circular(999),
-                      ),
-                      child: Text(
-                        digits,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 24,
-                          fontWeight: FontWeight.w900,
-                          letterSpacing: 4,
-                          fontFeatures: [FontFeature.tabularFigures()],
-                        ),
-                      ),
-                    ),
-                  ],
-                ],
-              ),
-            ),
-
-            // Footer — "SCAN TO CALL OWNER" band + subtle Nayak® credit.
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(vertical: 12),
-              color: _kEmergencyRed,
-              alignment: Alignment.center,
-              child: const Text(
-                'SCAN TO CALL OWNER',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 15,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: 2.4,
-                ),
-              ),
-            ),
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(vertical: 6),
-              color: Colors.white,
-              alignment: Alignment.center,
-              child: Text(
-                'Nayak ®',
-                style: TextStyle(
-                  color: _kInk.withValues(alpha: 0.35),
-                  fontSize: 9,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 1.4,
-                ),
-              ),
-            ),
           ],
         ),
       ),
+    );
+  }
+}
+
+/// Corner-bracket frame wrapping the vehicle number + QR block —
+/// four L-shaped marks at the outer corners, no full border. Matches
+/// the scanner-target look on the printed sticker.
+class _CornerBracketFrame extends StatelessWidget {
+  const _CornerBracketFrame({required this.child});
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      children: [
+        child,
+        const Positioned.fill(
+          child: IgnorePointer(
+            child: CustomPaint(painter: _BracketPainter()),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _BracketPainter extends CustomPainter {
+  const _BracketPainter();
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = _kInk
+      ..strokeWidth = 3.0
+      ..strokeCap = StrokeCap.square
+      ..style = PaintingStyle.stroke;
+    // Bracket arm length as a fraction of the frame size.
+    final arm = size.width * 0.14;
+    final w = size.width;
+    final h = size.height;
+    // Top-left
+    canvas.drawLine(const Offset(0, 0), Offset(arm, 0), paint);
+    canvas.drawLine(const Offset(0, 0), Offset(0, arm), paint);
+    // Top-right
+    canvas.drawLine(Offset(w - arm, 0), Offset(w, 0), paint);
+    canvas.drawLine(Offset(w, 0), Offset(w, arm), paint);
+    // Bottom-left
+    canvas.drawLine(Offset(0, h - arm), Offset(0, h), paint);
+    canvas.drawLine(Offset(0, h), Offset(arm, h), paint);
+    // Bottom-right
+    canvas.drawLine(Offset(w - arm, h), Offset(w, h), paint);
+    canvas.drawLine(Offset(w, h - arm), Offset(w, h), paint);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+/// Red medical/emergency cross used as decoration on either side of
+/// the QR code. Two overlapping rectangles form the plus symbol.
+class _MedicalCross extends StatelessWidget {
+  const _MedicalCross({required this.size});
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    final barThickness = size * 0.35;
+    return SizedBox(
+      width: size,
+      height: size,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          Container(
+            width: barThickness,
+            height: size,
+            color: _kEmergencyRed,
+          ),
+          Container(
+            width: size,
+            height: barThickness,
+            color: _kEmergencyRed,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _FooterDot extends StatelessWidget {
+  const _FooterDot({required this.color});
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 5,
+      height: 5,
+      decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+    );
+  }
+}
+
+class _FooterPipe extends StatelessWidget {
+  const _FooterPipe();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 1,
+      height: 12,
+      color: Colors.white.withValues(alpha: 0.6),
+    );
+  }
+}
+
+class _FooterDivider extends StatelessWidget {
+  const _FooterDivider();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 1,
+      height: 18,
+      color: Colors.white.withValues(alpha: 0.25),
+    );
+  }
+}
+
+class _FooterBadge extends StatelessWidget {
+  const _FooterBadge({
+    required this.icon,
+    required this.iconColor,
+    required this.label,
+  });
+  final IconData icon;
+  final Color iconColor;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, color: iconColor, size: 14),
+        const SizedBox(width: 4),
+        Text(
+          label,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 10,
+            fontWeight: FontWeight.w800,
+            letterSpacing: 0.6,
+          ),
+        ),
+      ],
     );
   }
 }
