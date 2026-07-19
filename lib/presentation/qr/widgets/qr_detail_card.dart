@@ -229,7 +229,7 @@ class _StickerSurface extends StatelessWidget {
             Container(
               width: double.infinity,
               color: _kEmergencyRed,
-              padding: const EdgeInsets.fromLTRB(16, 20, 16, 16),
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: const [
@@ -238,13 +238,13 @@ class _StickerSurface extends StatelessWidget {
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       color: Colors.white,
-                      fontSize: 38,
+                      fontSize: 40,
                       fontWeight: FontWeight.w900,
-                      letterSpacing: 0.4,
+                      letterSpacing: 0.2,
                       height: 1.0,
                     ),
                   ),
-                  SizedBox(height: 8),
+                  SizedBox(height: 6),
                   Text(
                     'SCAN TO CALL OWNER',
                     textAlign: TextAlign.center,
@@ -300,7 +300,7 @@ class _StickerSurface extends StatelessWidget {
                                 QrImageView(
                                   data: alertUrl,
                                   version: QrVersions.auto,
-                                  size: 200,
+                                  size: 220,
                                   backgroundColor: Colors.white,
                                   eyeStyle: const QrEyeStyle(
                                     eyeShape: QrEyeShape.square,
@@ -351,15 +351,15 @@ class _StickerSurface extends StatelessWidget {
                       ),
                     ),
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 10),
                   const Text(
                     'BE NAYAK',
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       color: _kInk,
-                      fontSize: 38,
+                      fontSize: 44,
                       fontWeight: FontWeight.w900,
-                      letterSpacing: 2.0,
+                      letterSpacing: 1.6,
                       height: 1.0,
                     ),
                   ),
