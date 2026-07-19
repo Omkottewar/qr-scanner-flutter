@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "205496890981",
+    "project_id": "emergency-scanner-caa09",
+    "storage_bucket": "emergency-scanner-caa09.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:205496890981:android:eaf6531389af1c29c9788c",
+        "android_client_info": {
+          "package_name": "com.emergencyalert.emergency_alert"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCJHcXhQi5jAN9gghprNFCiCHqGMDahw8g"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
