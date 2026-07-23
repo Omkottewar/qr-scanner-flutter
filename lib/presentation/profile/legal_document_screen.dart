@@ -53,27 +53,31 @@ class LegalDocumentScreen extends StatelessWidget {
                   _SectionView(section: section),
                   const SizedBox(height: 18),
                 ],
-                const SizedBox(height: 12),
-                Container(
-                  padding: const EdgeInsets.all(14),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.04),
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(
-                      color: Colors.white.withValues(alpha: 0.08),
+                // Severability boilerplate — hidden for lightweight docs
+                // (About / Disclaimer / Contact) that don't need it.
+                if (document.showFooter) ...[
+                  const SizedBox(height: 12),
+                  Container(
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.04),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(
+                        color: Colors.white.withValues(alpha: 0.08),
+                      ),
+                    ),
+                    child: const Text(
+                      'This document is part of the Service. If any provision '
+                      'is held unenforceable, the remaining provisions remain '
+                      'in full force.',
+                      style: TextStyle(
+                        color: AppColors.textTertiary,
+                        fontSize: 11.5,
+                        height: 1.45,
+                      ),
                     ),
                   ),
-                  child: const Text(
-                    'This document is part of the Service. If any provision '
-                    'is held unenforceable, the remaining provisions remain '
-                    'in full force.',
-                    style: TextStyle(
-                      color: AppColors.textTertiary,
-                      fontSize: 11.5,
-                      height: 1.45,
-                    ),
-                  ),
-                ),
+                ],
               ],
             ),
           ),

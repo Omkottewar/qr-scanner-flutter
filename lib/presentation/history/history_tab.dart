@@ -7,6 +7,7 @@ import '../../data/api_client.dart';
 import '../qr/qr_view_screen.dart';
 import '../widgets/glass_card.dart';
 import '../widgets/scale_tap.dart';
+import '../widgets/shimmer_box.dart';
 import '../../data/session_store.dart';
 import 'call_history_tab.dart';
 import 'edit_family_screen.dart';
@@ -436,11 +437,15 @@ class _QrTab extends StatelessWidget {
       child: loading
           ? ListView(
               physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.fromLTRB(24, 12, 24, 128),
               children: const [
-                SizedBox(height: 140),
-                Center(
-                  child: CircularProgressIndicator(color: AppColors.primary),
-                ),
+                // Three placeholder cards so the loading state matches
+                // the shape of the real list instead of a lone spinner.
+                QrCardSkeleton(),
+                SizedBox(height: 12),
+                QrCardSkeleton(),
+                SizedBox(height: 12),
+                QrCardSkeleton(),
               ],
             )
           : error != null

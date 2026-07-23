@@ -15,24 +15,33 @@ class LegalDocument {
     required this.lastUpdated,
     required this.intro,
     required this.sections,
+    this.showFooter = true,
   });
 
   final String title;
   final String lastUpdated;
   final String intro;
   final List<LegalSection> sections;
+  // Whether to render the "This document is part of the Service…"
+  // boilerplate footer under the sections. Kept on for the heavy legal
+  // docs (Privacy, Terms, Refund) where the severability clause matters;
+  // turned off for About / Disclaimer / Contact where it's just noise.
+  final bool showFooter;
 }
 
 abstract final class LegalContent {
-  // Real CP Network Private Limited values, matching the Privacy Policy PDF.
+  // Customer-facing brand values. Grievance officer email intentionally
+  // stays on the cpnetwork.in domain because it's the entity's
+  // DPDP-registered redressal address.
   static const String companyName = 'CP Network Private Limited';
-  static const String officeAddress = 'Bhagwan Nagar, Nagpur, Maharashtra, India';
-  static const String supportEmail = 'support@cpnetwork.in';
-  static const String legalEmail = 'support@cpnetwork.in';
-  static const String billingEmail = 'support@cpnetwork.in';
+  static const String officeAddress =
+      '401, Antriksh Building, Makhwana Road, Marol Andheri East, Mumbai, Maharashtra 400069';
+  static const String supportEmail = 'support@qr4emergency.com';
+  static const String legalEmail = 'support@qr4emergency.com';
+  static const String billingEmail = 'support@qr4emergency.com';
   static const String grievanceEmail = 'grievance@cpnetwork.in';
   static const String grievanceOfficer = 'Grievance Redressal Officer';
-  static const String supportPhone = '+91-9960049208';
+  static const String supportPhone = '+91-9665108102';
   static const String websiteUrl = 'www.qr4emergency.com';
 
   // ─── Privacy Policy ─────────────────────────────────────────────────────
@@ -40,244 +49,184 @@ abstract final class LegalContent {
   // (QR4Emergency_Privacy_Policy.pdf), effective 25 June 2026.
   static const privacyPolicy = LegalDocument(
     title: 'Privacy Policy',
-    lastUpdated: '07 July 2026',
+    lastUpdated: '25 June 2026',
     intro:
-        'QR 4 emergency is a QR Code Vehicle Emergency Contact & Smart '
+        'QR 4 Emergency is a QR Code Vehicle Emergency Contact & Smart '
         'Parking Solution operated by CP Network Private Limited.\n\n'
-        'Head Office: Bhagwan Nagar, Nagpur, Maharashtra, India\n'
-        'Phone: +91-9960049208\n'
-        'Email: support@cpnetwork.in\n'
+        'Head Office: $officeAddress\n'
+        'Email: $supportEmail\n'
         'Effective Date: 25 June 2026',
     sections: [
       LegalSection(
         heading: '1. Introduction & Scope',
         body:
-            'Welcome to QR 4 emergency (the "App", "Service", "Platform"), '
-            'a QR code-based vehicle emergency contact, wrong-parking '
-            'resolution, and smart parking management application operated '
-            'by CP Network Private Limited (the "Company", "we", "us", or '
-            '"our").\n\n'
-            'We are committed to protecting your personal data with the '
-            'highest standards of privacy, security, and transparency in '
-            'accordance with the Digital Personal Data Protection Act, '
-            '2023 ("DPDP Act"), the Information Technology Act, 2000, and '
-            'all applicable rules and regulations.\n\n'
+            'Welcome to QR 4 Emergency ("App", "Service", "Platform"). We '
+            'are committed to protecting your personal information and '
+            'complying with the Digital Personal Data Protection Act, '
+            '2023 (DPDP Act), the Information Technology Act, 2000, and '
+            'other applicable laws.\n\n'
             'This Privacy Policy explains:\n'
-            '   • What personal data we collect and why\n'
-            '   • How we use, share, store, and protect it\n'
-            '   • Your rights under Indian law and how to exercise them\n'
-            '   • Our grievance redressal mechanism\n\n'
-            'Scope: This Policy applies to all users of the QR 4 emergency '
-            'mobile application (Android & iOS) and any associated web '
-            'services, including:\n'
-            '   • Vehicle Owners / Registrants who create accounts and '
-            'affix QR codes/stickers to their vehicles (cars, bikes, etc.)\n'
-            '   • Users who scan QR codes ("Scanners") to contact vehicle '
-            'owners for emergencies, wrong parking, accidents, or other '
-            'legitimate purposes\n\n'
-            'By registering, logging in, affixing a QR code, or using any '
-            'feature of QR 4 emergency, you consent to the collection and '
-            'processing of your personal data as described in this Policy.',
+            '• What information we collect\n'
+            '• How we use it\n'
+            '• How we protect it\n'
+            '• Your rights regarding your information\n\n'
+            'This Policy applies to all users of the QR 4 Emergency mobile '
+            'application and related web services.\n\n'
+            'By registering or using QR 4 Emergency, you agree to this '
+            'Privacy Policy.',
       ),
       LegalSection(
         heading: '2. Information We Collect',
         body:
-            'We follow the principles of data minimisation and purpose '
-            'limitation. We collect only the data strictly necessary to '
-            'deliver and improve the Service.\n\n'
-            '2.1 Data You Provide Directly:\n\n'
-            '• Registration & Account Data — Full name, mobile phone '
-            'number (mandatory for OTP verification and communication '
-            'routing), email address (optional), profile photo (optional).\n\n'
-            '• Vehicle Data — Vehicle registration number (RC number), '
-            'make, model, colour, and optional vehicle photographs (for '
-            'profile/verification).\n\n'
-            '• QR Linkage Data — Information linking your physical QR '
-            'sticker/code to your vehicle and registered mobile number.\n\n'
-            '• Emergency & Additional Contacts — Names and phone numbers '
-            'of emergency contacts you voluntarily provide.\n\n'
-            '• Communication Preferences & Settings — Your choices '
-            'regarding contactability (e.g., parking notifications only, '
-            'emergency/SOS only, quiet hours, do-not-disturb).\n\n'
-            '• User-Generated Content — Photographs, descriptions, or '
-            'reports you upload when notifying a vehicle owner about wrong '
-            'parking, an incident, or emergency.\n\n'
-            '• Support & Feedback Data — Information you provide when '
-            'contacting customer support, submitting feedback, or '
-            'responding to surveys.\n\n'
-            '2.2 Data Collected Automatically (with Permissions):\n\n'
-            '• Device & Technical Information — Device model, operating '
-            'system, app version, unique device identifiers (for security '
-            'and anti-fraud), IP address, crash logs, and performance '
-            'data.\n\n'
-            '• Usage Data — Features accessed, QR scans performed '
-            '(timestamp, QR identifier), session duration, and interaction '
-            'patterns (processed in aggregated or anonymised form where '
-            'possible).\n\n'
-            '• Location Data (optional, with explicit consent) — Precise '
-            'or approximate location at the time of scanning a QR code or '
-            'when you enable location-based features. You can disable '
-            'location permission anytime in your device settings.\n\n'
-            '• Camera & Photo Library Access (with explicit permission) — '
-            'Required to scan QR codes and optionally capture/upload '
-            'photographs of parking situations or your vehicle.\n\n'
-            'We do NOT collect sensitive personal data (biometrics, health '
-            'information, financial details, etc.) unless explicitly '
-            'required for a future feature and with separate clear consent.',
+            'We collect only the information necessary to provide our '
+            'services.\n\n'
+            '2.1 Data You Provide Directly\n\n'
+            'When you create an account, we collect:\n'
+            '• Full Name\n'
+            '• Mobile Number (required for OTP verification)\n'
+            '• Vehicle Number\n'
+            '• Emergency Contacts (minimum 1 and maximum 5), including '
+            'each contact\'s name and mobile number.\n'
+            '• Blood Group (Mandatory) — Required to help emergency '
+            'responders and first responders identify your blood group '
+            'during emergencies when your QR code is scanned.\n'
+            '• Shipping Address (Mandatory) — Required to process, ship, '
+            'and deliver your purchased QR sticker. This may include your '
+            'name, address, city, state, postal code, and contact number.\n\n'
+            'We do not require your RC details, vehicle make, model, or '
+            'other vehicle information to use the Service.\n\n'
+            '2.2 Data Collected Automatically\n\n'
+            'With your permission, we may collect:\n'
+            '• Device information (device model, operating system, app '
+            'version, IP address, crash logs, and performance data)\n'
+            '• QR scan information (date, time, QR ID, and usage logs)\n'
+            '• Camera permission (to scan QR codes)\n'
+            '• Location (Optional): If a person scans your QR code, they '
+            'may choose to share their location with you. Location sharing '
+            'is completely optional and is only shared with your consent.\n'
+            '• Call Details: After a call is completed through our call '
+            'masking service, the vehicle owner may receive call '
+            'information such as the caller\'s phone number (if shared), '
+            'date and time of the call, and call duration for reference '
+            'and safety purposes.\n\n'
+            'We do not collect sensitive personal information such as '
+            'financial information, biometrics, or health information.',
       ),
       LegalSection(
         heading: '3. How We Use Your Information',
         body:
-            'We process your personal data only for the following specific '
-            'and legitimate purposes, with the legal basis under the DPDP '
-            'Act noted alongside each:\n\n'
-            '• Account creation, QR linkage & core service delivery '
-            '— Contract performance + Consent. We register you, link your '
-            'QR to your vehicle, and enable scanners to reach you '
-            'privately.\n\n'
-            '• Facilitate masked/private communication between users '
-            '— Consent + Legitimate Interest. We route masked calls and '
-            'SMS so your real number is not exposed to scanners.\n\n'
-            '• Send transactional & service notifications '
-            '— Contract + Legitimate Interest. We send OTPs, scan alerts '
-            'to vehicle owners, and delivery confirmations.\n\n'
-            '• Safety, fraud prevention & anti-harassment '
-            '— Legitimate Interest + Legal Obligation. We detect misuse, '
-            'block abusive users, and maintain logs for disputes.\n\n'
-            '• Service improvement & analytics '
-            '— Legitimate Interest. We analyse aggregated usage to fix '
-            'bugs, add features, and optimise performance.\n\n'
-            '• Legal compliance & safety '
-            '— Legal Obligation. We respond to valid government and '
-            'law-enforcement requests and court orders.\n\n'
-            'We provide just-in-time notices inside the App at the point '
-            'of data collection so you always know what data is being '
-            'collected and why. We do NOT use your data for targeted '
-            'behavioural advertising or sell it to data brokers.',
+            'We use your information to:\n'
+            '• Create and manage your account.\n'
+            '• Link your QR code with your vehicle.\n'
+            '• Connect QR scanners with vehicle owners through secure '
+            'call masking.\n'
+            '• Notify vehicle owners regarding emergencies or parking '
+            'issues.\n'
+            '• Maintain call history and service records.\n'
+            '• Improve app performance and security.\n'
+            '• Detect fraud and misuse.\n'
+            '• Comply with legal obligations.\n\n'
+            'We do not sell your personal information or use it for '
+            'targeted advertising.',
       ),
       LegalSection(
         heading: '4. How We Share Your Information',
         body:
-            'We do NOT sell, rent, or commercially exploit your personal '
-            'data. We share data only when necessary and under strict '
-            'contractual safeguards (Data Processing Agreements).\n\n'
-            'Key Recipients:\n\n'
-            '• Licensed Indian Telecom / CPaaS Partners (Call Masking & '
-            'SMS Providers) — We share only the minimum data required '
-            '(your registered phone number in masked/virtual form and the '
-            "scanner's phone number temporarily) to enable private, masked "
-            'voice calls or SMS between you and the person who scanned '
-            'your QR. These partners act as data processors. This is the '
-            'core privacy feature of QR 4 emergency — scanners never '
-            'receive or store your real phone number.\n\n'
-            '• Cloud Hosting & Backend Service Providers — Reputable '
-            'providers, with preference for India-based infrastructure.\n\n'
-            '• Legal & Government Authorities — Only when required by law '
-            'or to protect life or safety.',
+            'We never sell or rent your personal information.\n\n'
+            'Your information may be shared only with:\n'
+            '• Telecom and call masking providers to enable secure '
+            'communication.\n'
+            '• Cloud hosting and technical service providers.\n'
+            '• Government authorities when legally required.',
       ),
       LegalSection(
         heading: '5. Data Retention',
         body:
-            '• Account, Vehicle & QR Linkage Data — Retained while your '
-            'account is active. After a deletion request or 2–3 years of '
-            'inactivity, data is deleted or anonymised.\n\n'
-            '• Communication & Scan Logs (including masked call '
-            'metadata) — 6 to 12 months for dispute resolution and '
-            'telecom compliance.\n\n'
-            '• User-Uploaded Photos / Content — Deleted once the related '
-            'communication is resolved or upon your verified request.\n\n'
-            '• Technical & Analytics Data — Raw data deleted within 90 '
-            'days; aggregated data retained longer for service '
-            'improvement.',
+            'We retain data only as long as necessary.\n'
+            '• Account information remains until you delete your account.\n'
+            '• Call and scan logs may be retained for up to 12 months.\n'
+            '• Technical logs may be retained for up to 90 days.\n'
+            '• Deleted accounts are removed or anonymized as required by '
+            'law.',
       ),
       LegalSection(
-        heading: '6. Your Rights Under the DPDP Act, 2023',
+        heading: '6. Your Rights',
         body:
-            'As a Data Principal, you have the following rights:\n\n'
-            '   • Right to access your personal data and details of '
-            'processing\n'
-            '   • Right to correction of inaccurate or incomplete data\n'
-            '   • Right to erasure / deletion of your personal data\n'
-            '   • Right to withdraw consent (as easy as giving consent)\n'
-            '   • Right to grievance redressal with us\n'
-            '   • Right to nominate a person to exercise rights on your '
-            'behalf\n'
-            '   • Right to data portability (where technically feasible)\n\n'
-            'How to Exercise Your Rights:\n\n'
-            '   1. In-App (fastest): Profile / Settings → Privacy / Data '
-            'Rights section\n'
-            '   2. Email: privacy@cpnetwork.in or support@cpnetwork.in\n'
-            '   3. Phone / WhatsApp: +91-9960049208',
+            'You have the right to:\n'
+            '• Access your personal data.\n'
+            '• Correct inaccurate information.\n'
+            '• Delete your account and personal data.\n'
+            '• Withdraw consent.\n'
+            '• File a grievance.\n'
+            '• Nominate another person to exercise your rights where '
+            'applicable.\n\n'
+            'You can exercise these rights through:\n'
+            '• App Settings\n'
+            '• Email: $supportEmail',
       ),
       LegalSection(
-        heading: '7. Security Measures',
+        heading: '7. Security',
         body:
-            'We implement reasonable and appropriate security safeguards '
-            'including encryption in transit (TLS) and at rest (AES-256), '
-            'strict access controls, regular security assessments, and '
-            'employee training. While we take all reasonable steps, no '
-            'system is 100% secure. In case of a qualifying personal data '
-            'breach, we will notify affected users and the Data Protection '
-            'Board as required under DPDP Rules.',
+            'We use industry-standard security measures, including '
+            'encryption, secure servers, restricted access, and regular '
+            'security monitoring to protect your information.\n\n'
+            'Although we take reasonable precautions, no online system '
+            'can guarantee complete security.',
       ),
       LegalSection(
         heading: "8. Children's Privacy",
         body:
-            'QR 4 emergency is intended for adults (18+ years). We do not '
-            'knowingly collect personal data from children under 18.',
+            'QR 4 Emergency is intended for users aged 18 years and above.\n\n'
+            'We do not knowingly collect information from children.',
       ),
       LegalSection(
         heading: '9. International Data Transfers',
         body:
-            'We primarily process and store personal data within India. '
-            'Any transfers outside India will have adequate safeguards and '
-            'will be disclosed in updates to this Policy.',
+            'Your information is primarily stored and processed in India.\n\n'
+            'If data is transferred outside India, appropriate safeguards '
+            'will be implemented.',
       ),
       LegalSection(
-        heading: '10. Cookies, SDKs & Tracking',
+        heading: '10. Cookies & Analytics',
         body:
-            'The App uses essential local storage and analytics SDKs '
-            '(aggregated/anonymised where possible). We do not use '
-            'third-party advertising networks or cross-app tracking for '
-            'behavioural advertising.',
+            'The app uses only essential storage and analytics required '
+            'for service improvement.\n\n'
+            'We do not use third-party advertising or cross-app tracking.',
       ),
       LegalSection(
-        heading: '11. Changes to This Privacy Policy',
+        heading: '11. Changes to This Policy',
         body:
-            'We may update this Policy. Material changes will be notified '
-            'via in-app banner, email, or updated "Last Updated" date. '
-            'Continued use constitutes acceptance.',
+            'We may update this Privacy Policy from time to time.\n\n'
+            'Any significant changes will be communicated through the app '
+            'or by updating the Effective Date.',
       ),
       LegalSection(
-        heading: '12. Grievance Redressal Mechanism',
+        heading: '12. Grievance Officer',
         body:
-            'Grievance Redressal Officer\n'
-            'CP Network Private Limited\n'
-            'Bhagwan Nagar, Nagpur, Maharashtra\n'
-            'Phone: +91-9960049208\n'
-            'Email: grievance@cpnetwork.in\n\n'
-            'We aim to resolve grievances within DPDP timelines (typically '
-            '15–30 days).',
+            '$companyName\n'
+            'Phone: $supportPhone\n'
+            '$officeAddress\n'
+            'Email: $grievanceEmail\n\n'
+            'We aim to resolve grievances within applicable legal '
+            'timelines.',
       ),
       LegalSection(
-        heading: '13. Governing Law & Jurisdiction',
+        heading: '13. Governing Law',
         body:
-            'This Policy is governed by the laws of India. Disputes are '
-            'subject to the exclusive jurisdiction of competent courts in '
-            'Nagpur, Maharashtra, India, without prejudice to your rights '
-            'under the DPDP Act.',
+            'This Privacy Policy is governed by the laws of India.\n\n'
+            'Any disputes shall be subject to the jurisdiction of the '
+            'courts of Mumbai, Maharashtra.',
       ),
       LegalSection(
         heading: '14. Contact Us',
         body:
-            'CP Network Private Limited\n'
-            'Head Office: Bhagwan Nagar, Nagpur, Maharashtra, India\n'
-            'Phone: +91-9960049208\n'
-            'Email: support@cpnetwork.in\n'
-            'Grievance: grievance@cpnetwork.in\n\n'
-            'Thank you for trusting QR 4 emergency. We built this platform '
-            'to make roads safer, resolve parking issues responsibly, and '
-            'protect your privacy at every step.',
+            '$companyName\n'
+            'Phone: $supportPhone\n'
+            '$officeAddress\n'
+            'Email: $supportEmail\n\n'
+            'Thank you for choosing QR 4 Emergency. Our goal is to help '
+            'people connect quickly during emergencies while protecting '
+            'your privacy and personal information.',
       ),
     ],
   );
@@ -285,207 +234,121 @@ abstract final class LegalContent {
   // ─── Terms & Conditions ────────────────────────────────────────────────
   static const termsAndConditions = LegalDocument(
     title: 'Terms & Conditions',
-    lastUpdated: '07 July 2026',
+    lastUpdated: 'July 21, 2026',
     intro:
-        'These Terms govern your use of QR 4 Emergency, operated by '
-        '$companyName. By creating an account, activating a QR, or using '
-        'the Service in any way, you agree to be bound by these Terms. If '
-        'you do not agree, do not use the Service.',
+        'These Terms & Conditions govern your use of QR 4 Emergency, a '
+        'service operated by $companyName. By registering, activating, or '
+        'using the service, you agree to these Terms.',
     sections: [
       LegalSection(
         heading: '1. Eligibility',
         body:
-            'You must be at least 18 years old and capable of forming a '
-            'binding contract under Indian law. If you create a QR for a '
-            'vehicle you do not personally own, you confirm you have the '
-            'owner\'s written authorisation to register that vehicle.',
+            '• You must be at least 18 years old.\n'
+            '• You may register only vehicles that you own or are '
+            'authorized to register.',
       ),
       LegalSection(
-        heading: '2. Nature of the Service',
+        heading: '2. Service',
         body:
-            'QR 4 Emergency provides a QR-code-based bridge that allows a '
-            'bystander who scans your QR to reach the emergency contacts you '
-            'have nominated, through a masked telephone bridge. The Service '
-            'is informational and connectivity-only. It is NOT a substitute '
-            'for emergency services. In any life-threatening situation you '
-            'must dial 112 (national emergency), 102 (ambulance), 100 '
-            '(police), or 101 (fire) directly.',
+            'QR 4 Emergency helps connect a QR scanner with your '
+            'nominated emergency contacts through a masked calling system. '
+            'It is not an emergency response service and does not replace '
+            'Police, Ambulance, Fire, or other emergency services.',
       ),
       LegalSection(
-        heading: '3. Your account',
+        heading: '3. User Responsibilities',
         body:
-            '• Provide accurate, current, and complete information when '
-            'creating your account.\n'
-            '• Keep your registered mobile number and emergency contacts '
-            'current. Out-of-date contacts may render the Service ineffective '
-            'in an emergency.\n'
-            '• Maintain the confidentiality of your OTP, biometric '
-            'credentials, and device.\n'
-            '• Notify us immediately of any unauthorised use of your '
-            'account.',
+            'You agree to:\n'
+            '• Provide accurate information.\n'
+            '• Keep your emergency contacts updated.\n'
+            '• Keep your account and OTP secure.\n'
+            '• Use the service only for lawful purposes.',
       ),
       LegalSection(
-        heading: '4. Fees and validity',
+        heading: '4. Payment',
         body:
-            '4.1 Plan: QR 4 Emergency at ₹549 (₹499 platform fee + ₹50 '
-            'shipping, inclusive of applicable taxes) per registered QR — '
-            'a one-time payment, no annual renewal, no recurring charges.\n'
-            '4.2 Payment: Processed through Razorpay. By purchasing you '
-            'authorise the one-time charge.\n'
-            '4.3 Validity: A QR remains active for the lifetime of your '
-            'account. We may retire or discontinue individual QRs only '
-            'for a breach of these Terms.\n'
-            '4.4 Multiple QRs: You may register multiple QRs for multiple '
-            'vehicles. Each is billed separately at the same one-time '
-            'fee.',
+            '• One-time payment: ₹499 per QR (inclusive of applicable '
+            'taxes).\n'
+            '• The payment is for the registered QR and its associated '
+            'services.\n'
+            '• Each QR requires a separate one-time payment.',
       ),
       LegalSection(
-        heading: '5. Refund and cancellation',
+        heading: '5. Refund & Cancellation',
         body:
-            '5.1 You may request a full refund within 7 days of payment '
-            'ONLY IF the physical QR sticker has not yet been dispatched '
-            'and the digital QR has not been activated, scanned, or used '
-            'to place a bridged call.\n'
-            '5.2 If the physical QR sticker has already been dispatched at '
-            'the time of your refund request, a non-refundable operational '
-            'fee of INR 150 will be deducted to cover the cost of QR '
-            'generation, activation, printing, packaging, and shipping. '
-            'The balance will be refunded to your original payment method.\n'
-            '5.3 After the digital QR has been activated, scanned, or used '
-            'to place a bridged call — or after 7 days from payment, '
-            'whichever is earliest — the subscription is fully '
-            'non-refundable, except in the case of demonstrable failure of '
-            'the Service attributable to us.\n'
-            '5.4 Additional / replacement QRs provided to you at your '
-            'request are treated as fulfilled services and are '
-            'non-refundable from the moment of dispatch, regardless of the '
-            'primary subscription\'s refund status.\n'
-            '5.5 Procedure: email $billingEmail with your registered '
-            'mobile number and order ID. We will acknowledge within 2 '
-            'working days and process approved refunds within 7-14 working '
-            'days to the original payment method. Bank processing time is '
-            'not included in this window.\n'
-            '5.6 You may close your account at any time from the Profile '
-            'tab. Closure does not entitle you to a refund of unused '
-            'subscription time.',
+            '• If a refund is approved after activation, all platform '
+            'charges and QR printing charges will be refunded, except '
+            'where required by applicable law.',
       ),
       LegalSection(
-        heading: '6. Manual / referral QRs',
+        heading: '6. Acceptable Use',
         body:
-            'QRs distributed offline and activated via a referral code are '
-            'governed by these same Terms from the moment of activation.',
-      ),
-      LegalSection(
-        heading: '7. Acceptable use',
-        body:
-            'You agree not to:\n'
-            '   • Register a vehicle you do not own or do not have '
-            'authorisation to register\n'
-            '   • Use the Service to harass, defraud, impersonate, or stalk '
-            'any person\n'
-            '   • Probe, scan, or test our systems for vulnerabilities '
-            'except under a written authorisation from us\n'
-            '   • Reverse-engineer, decompile, or extract our source code or '
-            'database\n'
-            '   • Use automated means, scrapers, or bots to access the '
-            'Service\n'
-            '   • Upload information that infringes any third-party right or '
-            'violates Indian law\n'
-            '   • Misuse the masked-calling feature to make nuisance calls\n\n'
+            'You must not:\n'
+            '• Register unauthorized vehicles.\n'
+            '• Misuse the service or masked calling feature.\n'
+            '• Attempt unauthorized access, hacking, reverse engineering, '
+            'or data extraction.\n'
+            '• Use the service for fraudulent or illegal activities.\n\n'
             'Violation may result in suspension or termination without '
             'refund.',
       ),
       LegalSection(
-        heading: '8. Intellectual property',
+        heading: '7. Intellectual Property',
         body:
-            'All trademarks, logos, designs, source code, and the QR 4'
-            'Emergency name and brand are owned by $companyName. You receive '
-            'a limited, revocable, non-transferable, non-exclusive licence '
-            'to use the Service for your personal, non-commercial use only.',
+            'All trademarks, software, content, QR designs, and branding '
+            'belong to $companyName. No ownership rights are transferred '
+            'to users.',
       ),
       LegalSection(
-        heading: '9. Disclaimer of warranties',
+        heading: '8. Disclaimer',
         body:
-            'THE SERVICE IS PROVIDED "AS IS" AND "AS AVAILABLE". TO THE '
-            'MAXIMUM EXTENT PERMITTED BY INDIAN LAW, WE DISCLAIM ALL '
-            'WARRANTIES, EXPRESS OR IMPLIED, INCLUDING WARRANTIES OF '
-            'MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND '
-            'NON-INFRINGEMENT.\n\n'
-            'We do NOT guarantee that:\n'
-            '   • Calls will connect\n'
-            '   • Your nominated contacts will answer\n'
-            '   • Emergency responders will arrive in any particular time\n'
-            '   • The Service will be available at any given moment\n'
-            '   • The mobile network or device will allow a call at the time '
-            'of need',
+            'The service is provided on an "AS IS" and "AS AVAILABLE" '
+            'basis.\n\n'
+            'We do not guarantee:\n'
+            '• Successful call connection.\n'
+            '• Availability of mobile or internet networks.\n'
+            '• That emergency contacts will answer the call.\n'
+            '• Continuous or uninterrupted service.\n\n'
+            '$companyName shall not be responsible if a call cannot be '
+            'completed due to technical issues, telecom/network failures, '
+            'server downtime, device issues, or because the nominated '
+            'emergency contact does not answer the phone.',
       ),
       LegalSection(
-        heading: '10. Limitation of liability',
+        heading: '9. Limitation of Liability',
         body:
-            'To the maximum extent permitted by Indian law, our total '
-            'aggregate liability arising out of or in connection with the '
-            'Service shall not exceed the amount you actually paid us in the '
-            '12 months immediately preceding the event giving rise to the '
-            'claim. We shall not be liable for any indirect, consequential, '
-            'incidental, exemplary, or punitive damages, including loss of '
-            'profit, loss of data, personal injury, or death, arising from '
-            'or relating to your use of, or inability to use, the Service.',
+            'To the maximum extent permitted by law, $companyName\'s total '
+            'liability shall not exceed the amount paid by you for the '
+            'applicable subscription.',
       ),
       LegalSection(
-        heading: '11. Indemnity',
+        heading: '10. Account Suspension',
         body:
-            'You agree to indemnify, defend, and hold harmless $companyName, '
-            'its directors, officers, employees, and agents from and against '
-            'any claim, demand, damage, loss, liability, or expense '
-            '(including reasonable attorneys\' fees) arising out of (a) your '
-            'breach of these Terms, (b) your misuse of the Service, (c) your '
-            'violation of any law or third-party right, or (d) the content '
-            'you submit.',
+            'We may suspend or terminate any account involved in fraud, '
+            'misuse, illegal activities, or violation of these Terms.',
       ),
       LegalSection(
-        heading: '12. Suspension and termination',
+        heading: '11. Changes to Terms',
         body:
-            'We may suspend or terminate your account or your access to the '
-            'Service at any time for breach of these Terms, suspected fraud, '
-            'or as required by law. You may close your account at any time '
-            'from the Profile tab; data retention follows our Privacy '
-            'Policy.',
+            '$companyName reserves the absolute right to modify, update, '
+            'interpret, or replace these Terms & Conditions, Privacy '
+            'Policy, pricing, features, or any related policies at any '
+            'time. Any such decision shall be final and binding, subject '
+            'to applicable law.',
       ),
       LegalSection(
-        heading: '12A. Deleting a QR',
+        heading: '12. Governing Law',
         body:
-            'You may delete any of your QRs at any time from the History '
-            'tab. Deleting a QR is permanent: it removes the QR record, '
-            'the emergency contacts associated with that QR, all alert '
-            'scans, all call logs, and all caller-activity/block entries '
-            'tied to that QR from our systems. Your account itself is not '
-            'deleted; any other QRs you own remain active. Once deleted, '
-            'the physical sticker will no longer route calls, and the '
-            'data cannot be recovered.',
+            'These Terms are governed by the laws of India. Courts in '
+            'Mumbai, Maharashtra shall have exclusive jurisdiction, '
+            'subject to applicable consumer protection laws.',
       ),
       LegalSection(
-        heading: '13. Changes to these Terms',
+        heading: '13. Contact',
         body:
-            'We may amend these Terms from time to time. Material changes '
-            'will be notified in-app or by email at least 7 days before they '
-            'take effect. Continued use of the Service after the effective '
-            'date constitutes acceptance.',
-      ),
-      LegalSection(
-        heading: '14. Governing law and dispute resolution',
-        body:
-            'These Terms are governed by and construed in accordance with '
-            'the laws of India. Subject to applicable consumer-protection '
-            'statutes, the courts at Nagpur, Maharashtra shall have exclusive '
-            'jurisdiction over any dispute arising out of or in connection '
-            'with these Terms or the Service.',
-      ),
-      LegalSection(
-        heading: '15. Contact',
-        body:
-            'Support: $supportEmail\n'
-            'Billing: $billingEmail\n'
-            'Legal notices: $legalEmail',
+            '$companyName\n'
+            'Phone: $supportPhone\n'
+            'Email: $supportEmail',
       ),
     ],
   );
@@ -498,6 +361,7 @@ abstract final class LegalContent {
         'QR 4 Emergency is a contact-bridging tool. It is NOT a substitute '
         'for emergency services. Read this disclaimer carefully — your '
         'safety depends on understanding what this app can and cannot do.',
+    showFooter: false,
     sections: [
       LegalSection(
         heading: 'In a life-threatening situation, dial directly',
@@ -545,15 +409,6 @@ abstract final class LegalContent {
             'the QR works.\n'
             '• Be aware of the local emergency services in your area.',
       ),
-      LegalSection(
-        heading: 'Medical information',
-        body:
-            'Any blood-group or medical information you provide is shown to '
-            'a bystander or paramedic on a best-effort basis. We do not '
-            'verify medical information. Always carry your own primary '
-            'medical identification (ID card, MedicAlert bracelet) — do not '
-            'rely solely on our app for first-responder information.',
-      ),
     ],
   );
 
@@ -563,6 +418,7 @@ abstract final class LegalContent {
     lastUpdated: '07 July 2026',
     intro:
         'QR 4 Emergency is a connectivity tool for vehicle owners in India.',
+    showFooter: false,
     sections: [
       LegalSection(
         heading: 'Our mission',
@@ -585,11 +441,11 @@ abstract final class LegalContent {
       LegalSection(
         heading: 'Who we are',
         body:
-            '$companyName is an independent Indian company. We are not '
-            'affiliated with any government emergency service, insurance '
-            'company, or vehicle manufacturer. We are funded entirely by '
-            'our subscribers — we do not sell or share your data with '
-            'advertisers or data brokers.',
+            '$companyName is an independent company based in Mumbai, India. '
+            'We are not affiliated with any government emergency service, '
+            'insurance company, or vehicle manufacturer. We are funded '
+            'entirely by our subscribers — we do not sell or share your '
+            'data with advertisers or data brokers.',
       ),
       LegalSection(
         heading: 'Open principles',
@@ -602,117 +458,23 @@ abstract final class LegalContent {
     ],
   );
 
-  // ─── Refund & Cancellation ─────────────────────────────────────────────
-  static const refundPolicy = LegalDocument(
-    title: 'Refund & Cancellation',
-    lastUpdated: '07 July 2026',
-    intro:
-        'This policy is in addition to, and forms part of, our Terms & '
-        'Conditions. In case of conflict, the Terms govern.',
-    sections: [
-      LegalSection(
-        heading: 'Cooling-off period (before dispatch)',
-        body:
-            'You may request a FULL refund within 7 days of payment ONLY '
-            'IF (a) the physical QR sticker has not yet been dispatched, '
-            '(b) the digital QR has not been activated, (c) it has not '
-            'been scanned, and (d) it has not been used to bridge any call.',
-      ),
-      LegalSection(
-        heading: 'After dispatch, before activation',
-        body:
-            'If the physical QR sticker has already been dispatched at the '
-            'time of your refund request (but has not been activated / '
-            'scanned / used to bridge a call), a non-refundable '
-            'operational fee of INR 150 will be deducted to cover the '
-            'cost of QR generation, activation, printing, packaging, and '
-            'shipping. The remaining amount will be refunded to your '
-            'original payment method.',
-      ),
-      LegalSection(
-        heading: 'After activation',
-        body:
-            'Once a QR is activated, scanned, or used to bridge a call, the '
-            'subscription is FULLY non-refundable for the 365-day validity '
-            'period, except in the case of demonstrable service failure '
-            'attributable to us. Closing your account does not entitle you '
-            'to a refund of unused time.',
-      ),
-      LegalSection(
-        heading: 'Additional / replacement QRs',
-        body:
-            'Extra QRs provided at your request are treated as fulfilled '
-            'services from the moment they are dispatched and are '
-            'non-refundable, independent of the primary subscription\'s '
-            'refund status.',
-      ),
-      LegalSection(
-        heading: 'How to request a refund',
-        body:
-            '1. Email $billingEmail from your registered email address.\n'
-            '2. Include your registered mobile number, Razorpay order ID, '
-            'and the reason for the refund.\n'
-            '3. We will acknowledge within 2 working days.\n'
-            '4. Approved refunds are processed within 7-14 working days to '
-            'the original payment method. Bank processing time is not '
-            'included in this window.',
-      ),
-      LegalSection(
-        heading: 'Cancellation by us',
-        body:
-            'If we cancel your subscription for breach of our Terms, no '
-            'refund will be issued. If we cancel for any other reason '
-            '(including service discontinuation), we will refund the unused '
-            'pro-rata portion.',
-      ),
-      LegalSection(
-        heading: 'Chargebacks',
-        body:
-            'Please contact us before initiating a chargeback with your '
-            'bank. Unjustified chargebacks may result in suspension of your '
-            'account and forfeiture of remaining subscription.',
-      ),
-    ],
-  );
-
   // ─── Contact ───────────────────────────────────────────────────────────
   static const contactUs = LegalDocument(
     title: 'Contact Us',
     lastUpdated: '07 July 2026',
     intro: 'We respond to every message. Pick the channel that fits.',
+    showFooter: false,
     sections: [
       LegalSection(
         heading: 'Customer support',
         body:
             'Email: $supportEmail\n'
             'Phone: $supportPhone\n'
-            'Hours: 09:00 to 17:00 IST, Monday to Saturday',
+            'Hours: 9 to 9',
       ),
       LegalSection(
-        heading: 'Billing and refunds',
-        body: 'Email: $billingEmail',
-      ),
-      LegalSection(
-        heading: 'Legal notices',
-        body:
-            'Email: $legalEmail\n'
-            'For service of legal process, send to the postal address '
-            'below.',
-      ),
-      LegalSection(
-        heading: 'Grievance Officer',
-        body:
-            'For complaints under the DPDP Act 2023 and the IT Act 2000:\n\n'
-            '$grievanceOfficer\n'
-            'Email: $grievanceEmail\n'
-            'Postal: $companyName, $officeAddress',
-      ),
-      LegalSection(
-        heading: 'Postal address',
-        body:
-            '$companyName\n'
-            '$officeAddress\n'
-            'India',
+        heading: 'Postal Address',
+        body: '$companyName\n$officeAddress',
       ),
     ],
   );

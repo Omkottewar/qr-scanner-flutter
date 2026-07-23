@@ -70,7 +70,11 @@ class HomeTab extends StatelessWidget {
                     crossAxisCount: 2,
                     mainAxisSpacing: 12,
                     crossAxisSpacing: 12,
-                    childAspectRatio: 1.05,
+                    // 1.05 was clipping cards where the title wraps to
+                    // two lines (Call/Spam Protection, Location Sharing).
+                    // 0.88 gives each card enough vertical room for a
+                    // 2-line title + 2-line description without cropping.
+                    childAspectRatio: 0.88,
                     children: const [
                       _FeatureCard(
                         icon: Icons.qr_code_scanner_rounded,
@@ -216,7 +220,7 @@ class _TopBar extends StatelessWidget {
                   style: const TextStyle(
                     color: AppColors.textPrimary,
                     fontSize: 20,
-                    fontWeight: FontWeight.w800,
+                    fontWeight: FontWeight.w900,
                     letterSpacing: -0.3,
                     height: 1.0,
                   ),
@@ -227,7 +231,7 @@ class _TopBar extends StatelessWidget {
                   style: TextStyle(
                     color: AppColors.primary,
                     fontSize: 9.5,
-                    fontWeight: FontWeight.w800,
+                    fontWeight: FontWeight.w900,
                     letterSpacing: 3,
                     height: 1.0,
                   ),
@@ -262,25 +266,24 @@ class _HeroCta extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        gradient: AppColors.brandGradient,
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.primary.withValues(alpha: 0.6),
-            blurRadius: 60,
-            spreadRadius: -16,
-            offset: const Offset(0, 28),
-          ),
-        ],
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(24),
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(24),
+      child: Container(
+        decoration: BoxDecoration(
+          gradient: AppColors.brandGradient,
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.primary.withValues(alpha: 0.6),
+              blurRadius: 60,
+              spreadRadius: -16,
+              offset: const Offset(0, 28),
+            ),
+          ],
+        ),
         child: Stack(
           children: [
-            // Decorative circle
+            // Decorative circle — behind the text, clipped to card shape
+            // by the outer ClipRRect.
             Positioned(
               top: -40,
               right: -40,
@@ -293,20 +296,33 @@ class _HeroCta extends StatelessWidget {
                 ),
               ),
             ),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Your family,\none scan away.',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 26,
-                    fontWeight: FontWeight.w800,
-                    height: 1.1,
-                    letterSpacing: -0.6,
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 18, 20, 20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // No `height` property — let the font's natural metrics
+                  // reserve room for descenders. Wrap each line in its
+                  // own Text so line 2 can't stomp on line 1's `y` tail.
+                  const Text(
+                    'Your family,',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 26,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: -0.6,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 8),
+                  const Text(
+                    'one scan away.',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 26,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: -0.6,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
                 Text(
                   'One scan instantly connects to your emergency contacts.',
                   style: TextStyle(
@@ -351,6 +367,7 @@ class _HeroCta extends StatelessWidget {
                 ),
               ],
             ),
+          ), // Padding
           ],
         ),
       ),

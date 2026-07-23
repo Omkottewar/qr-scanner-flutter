@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
 
-import 'package:flutter/foundation.dart' show kReleaseMode;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
@@ -146,12 +145,11 @@ class _CreateQrFormScreenState extends State<CreateQrFormScreen> {
   Timer? _pincodeDebounce;
 
   final List<_ContactRow> _contacts = [_ContactRow()];
-  // Default OFF everywhere so the primary flow — creating a QR through
-  // real Razorpay test-mode checkout — is what fires when the user taps
-  // the button. In debug the toggle is still visible so a developer can
-  // opt back into the bypass path when needed (e.g., testing without a
-  // network). In release the toggle is hidden entirely.
-  bool _bypassPayment = false;
+  // Non-blocking loading indicator for the submit button — form
+  // validation + vehicle-check + navigation-to-payment all run through
+  // this single flag so the button stays disabled with a spinner while
+  // the network round-trip is in flight.
+  bool _submitting = false;
 
   @override
   void dispose() {
@@ -224,6 +222,7 @@ class _CreateQrFormScreenState extends State<CreateQrFormScreen> {
   }
 
   Future<void> _submit() async {
+    if (_submitting) return; // prevent double-tap
     if (!_formKey.currentState!.validate()) return;
 
     if (_blood == 'Select blood group') {
@@ -256,92 +255,33 @@ class _CreateQrFormScreenState extends State<CreateQrFormScreen> {
       shippingPincode: _pincode.text.trim(),
     );
 
-    // Verify vehicle existence first
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (ctx) => const Center(child: CircularProgressIndicator(color: AppColors.primary)),
-    );
-
+    // Inline loading state — non-blocking; the button's own spinner
+    // shows work is in progress without freezing the form under a
+    // full-screen modal dialog.
+    setState(() => _submitting = true);
     try {
       final checkVehicleNum = _vehicle.text.trim().toUpperCase();
-      final checkRes = await ApiClient.instance.get('/qr/check-vehicle/$checkVehicleNum');
+      final checkRes =
+          await ApiClient.instance.get('/qr/check-vehicle/$checkVehicleNum');
       if (!mounted) return;
-      Navigator.pop(context); // Dismiss loader
 
       if (checkRes is Map && checkRes['exists'] == true) {
-        showDialog(
-          context: context,
-          builder: (ctx) => AlertDialog(
-            title: const Text('Validation Error', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.redAccent)),
-            content: const Text('Vehicle already exists in system.'),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(ctx),
-                child: const Text('OK', style: TextStyle(color: AppColors.primary)),
-              ),
-            ],
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('This vehicle is already registered.'),
           ),
         );
         return;
       }
-    } catch (e) {
-      if (!mounted) return;
-      Navigator.pop(context); // Dismiss loader
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(ErrorMessages.friendly(e))));
-      return;
-    }
 
-    if (!_bypassPayment) {
+      // Vehicle is unique — hand the draft to the payment flow.
       widget.onProceedToPayment(draft);
-      return;
-    }
-
-    try {
-      debugPrint('[qr/create] submitting draft');
-
-      final body = {
-        ...draft.toPaymentJson(),
-        'razorpay_order_id': 'order_dev',
-        'razorpay_payment_id':
-            'pay_dev_${DateTime.now().millisecondsSinceEpoch}',
-        'razorpay_signature': 'dev_sig',
-      };
-
-      final res = await ApiClient.instance.post('/qr/create', body);
-
-      debugPrint('[qr/create] response: $res');
-
-      if (!mounted) return;
-
-      // Server contract: { unique_id, digits, alert_url, vehicle_number, ... }
-      // Defensive against a shape drift — surface a clear error instead
-      // of crashing on `null.toString()` in the mapping below.
-      if (res is! Map) {
-        throw Exception('Unexpected server response');
-      }
-      final uniqueId = res['unique_id']?.toString();
-      final alertUrl = res['alert_url']?.toString();
-      final vehicleNumber = res['vehicle_number']?.toString();
-      if (uniqueId == null || alertUrl == null || vehicleNumber == null) {
-        throw Exception('Server response missing required fields');
-      }
-
-      widget.onCreatedDirectly(
-        QrCreateResult(
-          uniqueId: uniqueId,
-          digits: res['digits']?.toString() ?? '',
-          alertUrl: alertUrl,
-          vehicleNumber: vehicleNumber,
-          ownerName: draft.name,
-          bloodGroup: draft.bloodGroup,
-          familyCount: draft.family.length,
-        ),
-      );
     } catch (e) {
-      debugPrint('[qr/create] error: $e');
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(ErrorMessages.friendly(e))));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(ErrorMessages.friendly(e))));
+    } finally {
+      if (mounted) setState(() => _submitting = false);
     }
   }
 
@@ -716,68 +656,13 @@ class _CreateQrFormScreenState extends State<CreateQrFormScreen> {
               ),
             ),
           ),
-          // Dev-only shortcut — never rendered in release builds.
-          if (!kReleaseMode)
-            SwitchListTile(
-              title: const Text('Bypass Payment Gateway (debug only)'),
-              subtitle: const Text('Off = real Razorpay test checkout · On = skip payment entirely'),
-              value: _bypassPayment,
-              onChanged: (val) => setState(() => _bypassPayment = val),
-            ),
-          // Test-mode reminder — only shown while we're on Razorpay test
-          // keys, and only in debug builds. Give the tester the exact
-          // card + CVV so they don't have to hunt through docs. Remove
-          // this block (or gate on `rzp_live_` prefix) before shipping.
-          if (!kReleaseMode && !_bypassPayment)
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 4, 16, 4),
-              child: Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: AppColors.amber.withValues(alpha: 0.10),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: AppColors.amber.withValues(alpha: 0.35)),
-                ),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Icon(Icons.science_outlined, color: AppColors.amber, size: 18),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'RAZORPAY TEST MODE',
-                            style: TextStyle(
-                              color: AppColors.amber,
-                              fontSize: 10,
-                              fontWeight: FontWeight.w800,
-                              letterSpacing: 1.4,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          const Text(
-                            'Card: 4111 1111 1111 1111 · Expiry: any future date · CVV: any 3 digits · OTP: 1234',
-                            style: TextStyle(
-                              color: AppColors.textSecondary,
-                              fontSize: 12,
-                              height: 1.4,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
             child: EaPrimaryButton(
-              label: _bypassPayment ? 'Create QR Directly' : 'Pay ₹549 & Create QR',
-              icon: _bypassPayment ? Icons.arrow_forward : Icons.lock_rounded,
-              onPressed: _submit,
+              label: _submitting ? 'Checking vehicle…' : 'Pay ₹549 & Create QR',
+              icon: Icons.lock_rounded,
+              loading: _submitting,
+              onPressed: _submitting ? null : _submit,
             ),
           ),
         ],

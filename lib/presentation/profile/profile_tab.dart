@@ -633,13 +633,6 @@ class ProfileTabState extends State<ProfileTab> {
         onTap: () => _openLegal(LegalContent.disclaimer),
       ),
       _SettingRow(
-        icon: Icons.receipt_long_rounded,
-        color: const Color(0xFF14B8A6),
-        title: 'Refund & Cancellation',
-        sub: '7-day cooling-off period',
-        onTap: () => _openLegal(LegalContent.refundPolicy),
-      ),
-      _SettingRow(
         icon: Icons.chat_bubble_outline_rounded,
         color: AppColors.primary,
         title: 'Contact Us',

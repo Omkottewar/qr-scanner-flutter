@@ -230,15 +230,9 @@ class _RenewSheetState extends State<RenewSheet> {
 
   @override
   Widget build(BuildContext context) {
-    // Display shows the intended renewal price (₹99 default). Actual
-    // amount debited by Razorpay may be lower if the backend's
-    // TEST_CHARGE_AMOUNT_PAISE override is active.
+    // Renewal price (₹99 default).
     final displayPaise = _intendedAmountPaise ?? _amountPaise ?? 9900;
     final rupees = (displayPaise / 100).toStringAsFixed(0);
-    final actualCharge = _amountPaise ?? displayPaise;
-    final isTestOverride = _amountPaise != null &&
-        _intendedAmountPaise != null &&
-        actualCharge != displayPaise;
     return Padding(
       padding: EdgeInsets.only(
         bottom: MediaQuery.of(context).viewInsets.bottom,
@@ -349,40 +343,6 @@ class _RenewSheetState extends State<RenewSheet> {
                       ),
                     ],
                   ),
-                  // Test-charge disclosure — only when backend override is
-                  // active. Real users on live keys never see this.
-                  if (isTestOverride) ...[
-                    const SizedBox(height: 10),
-                    Container(
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFFFB547).withValues(alpha: 0.12),
-                        borderRadius: BorderRadius.circular(10),
-                        border: Border.all(
-                          color: const Color(0xFFFFB547).withValues(alpha: 0.35),
-                        ),
-                      ),
-                      child: Row(
-                        children: [
-                          const Icon(Icons.science_outlined,
-                              color: Color(0xFFFFB547), size: 16),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              'Test mode — Razorpay will only charge '
-                              '₹${(actualCharge / 100).toStringAsFixed(2)} '
-                              'for this transaction.',
-                              style: TextStyle(
-                                color: AppColors.textSecondary,
-                                fontSize: 12,
-                                height: 1.35,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
                 ],
               ),
             ),

@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show ValueListenable;
 import 'package:flutter/material.dart';
 import 'package:razorpay_flutter/razorpay_flutter.dart';
 
@@ -11,6 +12,15 @@ import '../widgets/ea_card.dart';
 import '../widgets/ea_primary_button.dart';
 import '../widgets/ea_text_field.dart';
 import 'qr_flow_tab.dart';
+
+// Stages the loading overlay walks through after Razorpay's SDK
+// callback fires. The overlay updates its title / subtitle based on
+// which stage we're in — makes the reconciliation flow feel like
+// progress instead of a stuck spinner.
+enum _LoadingStep {
+  confirmingPayment, // polling /payments/status while webhook lands
+  creatingQr,        // calling /qr/create after payment is verified
+}
 
 class PaymentScreen extends StatefulWidget {
   const PaymentScreen({
@@ -37,7 +47,21 @@ class _PaymentScreenState extends State<PaymentScreen> {
   String? _keyId;
   int? _amountPaise;         // what Razorpay will actually charge
   int? _intendedAmountPaise; // what the UI shows (real subscription price)
-  bool _demoMode = false;
+
+  // Full-screen loading overlay used during the post-payment
+  // reconciliation window. Razorpay's UPI Collect SDK often fires an
+  // error callback before NPCI's webhook confirmation reaches us; the
+  // user sees a brief "Payment Error" flash even though the payment
+  // actually succeeded. The overlay hides that jitter behind a clear
+  // "Confirming your payment…" message + step progression so the flow
+  // reads as "in progress" instead of "broken".
+  final ValueNotifier<_LoadingStep?> _loadingStep =
+      ValueNotifier<_LoadingStep?>(null);
+  bool _overlayShown = false;
+  // Captured when the dialog builds so `_hideConfirmOverlay` pops the
+  // EXACT dialog we opened, not whatever happens to be on top of the
+  // root navigator right now.
+  NavigatorState? _overlayNav;
 
   @override
   void initState() {
@@ -49,7 +73,54 @@ class _PaymentScreenState extends State<PaymentScreen> {
   void dispose() {
     _upiId.dispose();
     _rz?.clear();
+    // Best-effort dismiss so the dialog doesn't stay on the root
+    // navigator after this screen is popped (would strand the user on
+    // a black overlay with no way out).
+    if (_overlayShown) {
+      final nav = _overlayNav;
+      _overlayShown = false;
+      _overlayNav = null;
+      if (nav != null && nav.canPop()) nav.pop();
+    }
+    _loadingStep.dispose();
     super.dispose();
+  }
+
+  // Shows the reconciliation overlay if not already visible, and sets
+  // the current step. Repeat calls just update the message — no dialog
+  // stacking. Uses the root navigator so the overlay survives the
+  // parent route being popped by `widget.onSuccess` before we get a
+  // chance to dismiss.
+  void _showConfirmOverlay(_LoadingStep step) {
+    _loadingStep.value = step;
+    if (_overlayShown) return;
+    _overlayShown = true;
+    showDialog<void>(
+      context: context,
+      useRootNavigator: true,
+      barrierDismissible: false,
+      barrierColor: Colors.black.withValues(alpha: 0.72),
+      builder: (dialogCtx) {
+        // Capture the dialog's own navigator so hide pops the exact
+        // route we pushed, not whatever ends up on top later.
+        _overlayNav = Navigator.of(dialogCtx);
+        return PopScope(
+          canPop: false,
+          child: _ConfirmingOverlay(step: _loadingStep),
+        );
+      },
+    ).then((_) {
+      _overlayShown = false;
+      _overlayNav = null;
+    });
+  }
+
+  void _hideConfirmOverlay() {
+    if (!_overlayShown) return;
+    final nav = _overlayNav;
+    _overlayShown = false;
+    _overlayNav = null;
+    if (nav != null && nav.canPop()) nav.pop();
   }
 
   // Guards against Razorpay firing the success listener more than once
@@ -77,7 +148,6 @@ class _PaymentScreenState extends State<PaymentScreen> {
         // field yet — keeps the UI honest against both response shapes.
         _intendedAmountPaise = (map['intended_amount'] as num?)?.toInt()
             ?? _amountPaise;
-        _demoMode = map['demo_mode'] == true;
       });
       // Persist the order id NOW so an OS kill mid-checkout can be
       // recovered on next launch instead of double-charging the user.
@@ -104,6 +174,11 @@ class _PaymentScreenState extends State<PaymentScreen> {
     if (_completing) return;
     _completing = true;
     setState(() => _loading = true);
+    // Flip the overlay to "Creating your QR…". If the overlay isn't
+    // already visible (direct-success path, no reconciliation), this
+    // brings it up too — user sees a single consistent loading state
+    // from tap to success screen.
+    _showConfirmOverlay(_LoadingStep.creatingQr);
     try {
       final body = {
         ...widget.draft.toPaymentJson(),
@@ -126,6 +201,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
       // Order is complete — clear the pending marker so it doesn't
       // trigger a spurious "resume payment" prompt on next launch.
       await PendingOrderStore.clear();
+      _hideConfirmOverlay();
       widget.onSuccess(
         QrCreateResult(
           uniqueId: uniqueId,
@@ -181,6 +257,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
       );
       _completing = false; // real failure — let the user retry
       if (!mounted) return;
+      _hideConfirmOverlay();
       // Post-payment failures deserve a proper dialog with recovery
       // affordances, not a fleeting SnackBar.
       _showPostPaymentFailureDialog(
@@ -219,6 +296,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
       if (!mounted) return true; // still counts as recovered
       debugPrint('[qr/create] recovered via /payments/status → qr_id=$qrIdRaw');
       await PendingOrderStore.clear();
+      _hideConfirmOverlay();
       widget.onSuccess(
         QrCreateResult(
           uniqueId: match['unique_id']?.toString() ?? '',
@@ -462,6 +540,10 @@ class _PaymentScreenState extends State<PaymentScreen> {
     // Give the webhook up to ~12s to arrive. UPI captures usually land
     // within 2–5s after the client-side timeout fires; 12s is generous.
     setState(() => _loading = true);
+    // Bring up the overlay immediately so the user isn't staring at a
+    // blank payment screen while we poll — the SDK's timeout snackbar
+    // can look like a hard failure otherwise.
+    _showConfirmOverlay(_LoadingStep.confirmingPayment);
     const attempts = 6;
     const delayMs = 2000;
     String? verifiedPaymentId;
@@ -499,6 +581,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
 
     // Genuine failure — surface the friendly copy. Marker stays so the
     // next launch can double-check.
+    _hideConfirmOverlay();
     setState(() => _loading = false);
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(_friendlyRazorpayFailure(r))),
@@ -564,14 +647,6 @@ class _PaymentScreenState extends State<PaymentScreen> {
 
   void _openCheckout() {
     try {
-      if (_demoMode) {
-        _completeCreate(
-          orderId: _orderId ?? 'order_dev',
-          paymentId: 'pay_dev_${DateTime.now().millisecondsSinceEpoch}',
-          signature: 'dev_sig',
-        );
-        return;
-      }
       if (_orderId == null || _keyId == null || _amountPaise == null) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Order not ready')),
@@ -630,10 +705,6 @@ class _PaymentScreenState extends State<PaymentScreen> {
     // Razorpay's modal will show and debit.
     final displayPaise = _intendedAmountPaise ?? _amountPaise ?? 29900;
     final rupees = (displayPaise / 100).toStringAsFixed(0);
-    final actualCharge = _amountPaise ?? displayPaise;
-    final isTestOverride = _amountPaise != null &&
-        _intendedAmountPaise != null &&
-        actualCharge != displayPaise;
 
     return Scaffold(
       appBar: AppBar(
@@ -730,42 +801,6 @@ class _PaymentScreenState extends State<PaymentScreen> {
                             ),
                           ],
                         ),
-                        // Test-charge disclosure — only appears when the
-                        // backend's TEST_CHARGE_AMOUNT_PAISE override is
-                        // active and the actual charge differs from the
-                        // displayed subscription price.
-                        if (isTestOverride) ...[
-                          const SizedBox(height: 8),
-                          Container(
-                            padding: const EdgeInsets.all(10),
-                            decoration: BoxDecoration(
-                              color: AppColors.amber.withValues(alpha: 0.12),
-                              borderRadius: BorderRadius.circular(10),
-                              border: Border.all(
-                                color: AppColors.amber.withValues(alpha: 0.35),
-                              ),
-                            ),
-                            child: Row(
-                              children: [
-                                const Icon(Icons.science_outlined,
-                                    color: AppColors.amber, size: 16),
-                                const SizedBox(width: 8),
-                                Expanded(
-                                  child: Text(
-                                    'Test mode — Razorpay will only charge '
-                                    '₹${(actualCharge / 100).toStringAsFixed(2)} '
-                                    'for this transaction.',
-                                    style: TextStyle(
-                                      color: AppColors.textSecondary,
-                                      fontSize: 12,
-                                      height: 1.35,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
                         const SizedBox(height: 12),
                         Container(
                           width: double.infinity,
@@ -859,11 +894,8 @@ class _PaymentScreenState extends State<PaymentScreen> {
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
             child: EaPrimaryButton(
-              label: _loading
-                  ? 'Please wait…'
-                  : _demoMode
-                      ? 'Simulate payment (dev)'
-                      : 'Pay ₹$rupees',
+              label: _loading ? 'Please wait…' : 'Pay ₹$rupees',
+              loading: _loading,
               onPressed: _loading ? null : _openCheckout,
             ),
           ),
@@ -923,6 +955,142 @@ class _PayOption extends StatelessWidget {
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+// Non-dismissible loading dialog shown during payment reconciliation +
+// QR creation. Listens to a ValueNotifier so the SAME dialog can update
+// its title/subtitle mid-flight (payment → QR) without pop+push flicker.
+class _ConfirmingOverlay extends StatelessWidget {
+  const _ConfirmingOverlay({required this.step});
+  final ValueListenable<_LoadingStep?> step;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 40),
+        padding: const EdgeInsets.fromLTRB(28, 32, 28, 28),
+        decoration: BoxDecoration(
+          color: const Color(0xFF161F33),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.4),
+              blurRadius: 30,
+              offset: const Offset(0, 12),
+            ),
+          ],
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Glowing orange ring around a spinner — reads as "actively
+            // working" without looking anxious.
+            SizedBox(
+              width: 64,
+              height: 64,
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  Container(
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppColors.primary.withValues(alpha: 0.35),
+                          blurRadius: 24,
+                          spreadRadius: 2,
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(
+                    width: 44,
+                    height: 44,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 3.5,
+                      color: AppColors.primary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 24),
+            ValueListenableBuilder<_LoadingStep?>(
+              valueListenable: step,
+              builder: (context, value, _) {
+                final title = value == _LoadingStep.creatingQr
+                    ? 'Creating your QR…'
+                    : 'Confirming your payment…';
+                final subtitle = value == _LoadingStep.creatingQr
+                    ? "Payment received. Setting up your emergency contacts and shipping details."
+                    : "UPI networks sometimes take a few extra seconds. We're checking with your bank now — please don't close the app.";
+                // Fade between messages so the transition isn't jarring.
+                return AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 240),
+                  child: Column(
+                    key: ValueKey<_LoadingStep?>(value),
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        title,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          color: Color(0xFFF8FAFC),
+                          fontSize: 17,
+                          fontWeight: FontWeight.w800,
+                          height: 1.3,
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      Text(
+                        subtitle,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          color: Color(0xFF94A3B8),
+                          fontSize: 13,
+                          height: 1.5,
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+            const SizedBox(height: 20),
+            // Two-dot progress rail. First dot fills solid at
+            // 'confirmingPayment', second dot lights up at 'creatingQr'.
+            ValueListenableBuilder<_LoadingStep?>(
+              valueListenable: step,
+              builder: (context, value, _) {
+                final onSecondStep = value == _LoadingStep.creatingQr;
+                Widget dot(bool active) => AnimatedContainer(
+                  duration: const Duration(milliseconds: 220),
+                  width: active ? 28 : 8,
+                  height: 8,
+                  decoration: BoxDecoration(
+                    color: active
+                        ? AppColors.primary
+                        : Colors.white.withValues(alpha: 0.18),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                );
+                return Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    dot(!onSecondStep),
+                    const SizedBox(width: 6),
+                    dot(onSecondStep),
+                  ],
+                );
+              },
+            ),
+          ],
         ),
       ),
     );

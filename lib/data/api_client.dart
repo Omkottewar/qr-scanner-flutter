@@ -32,8 +32,13 @@ class ApiClient {
   static const Duration _paymentTimeout = Duration(seconds: 30);
 
   Duration _timeoutFor(String path) {
-    if (path.startsWith('/payments/') ||
-        path.startsWith('/qr/') && (path.contains('/renew/') || path.endsWith('/create'))) {
+    // Strip query string before matching — `path.endsWith('/create')`
+    // was silently missing paths like `/qr/create?foo=bar` and falling
+    // back to the 15s timeout, which can flake on slow networks.
+    final base = path.split('?').first;
+    if (base.startsWith('/payments/') ||
+        (base.startsWith('/qr/') &&
+            (base.contains('/renew/') || base.endsWith('/create')))) {
       return _paymentTimeout;
     }
     return _timeout;

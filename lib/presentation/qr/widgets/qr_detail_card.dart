@@ -435,18 +435,18 @@ class _Body extends StatelessWidget {
                 Text(
                   'BE NAYAK',
                   style: _poppins(
-                    size: 16,
+                    size: 20,
                     letterSpacing: 0.5,
                     height: 1.0,
                   ),
                 ),
-                const _MedicalCross(size: 28),
+                const _MedicalCross(size: 24),
                 _ExtensionPill(digits: digits),
-                const _MedicalCross(size: 28),
+                const _MedicalCross(size: 24),
                 Text(
                   'BE NAYAK',
                   style: _poppins(
-                    size: 16,
+                    size: 20,
                     letterSpacing: 0.5,
                     height: 1.0,
                   ),
@@ -602,9 +602,12 @@ class _ContactChip extends StatelessWidget {
         const SizedBox(width: 6),
         Text(
           label,
+          // 12pt keeps "support@qr4emergency.com" comfortably inside the
+          // sticker width alongside the website chip. Bumping this any
+          // higher pushes the closing ".com" past the right margin.
           style: _poppins(
             size: 12,
-            weight: FontWeight.w600,
+            weight: FontWeight.w700,
             color: Colors.white,
           ),
         ),
