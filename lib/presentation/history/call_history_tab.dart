@@ -176,9 +176,12 @@ class CallHistoryTabState extends State<CallHistoryTab> {
     final mon = IstTime.monthsShort[ist.month - 1];
     final hh = ist.hour.toString().padLeft(2, '0');
     final mm = ist.minute.toString().padLeft(2, '0');
+    // Backend stores call_logs.start_time in UTC. We convert to India
+    // Standard Time (+5:30) here and mark it with the "IST" suffix so
+    // users don't wonder whether they're seeing UTC or device-local time.
     return showYear
-        ? '$day $mon ${ist.year} · $hh:$mm'
-        : '$day $mon · $hh:$mm';
+        ? '$day $mon ${ist.year} · $hh:$mm IST'
+        : '$day $mon · $hh:$mm IST';
   }
 
   double? _asDouble(dynamic v) {

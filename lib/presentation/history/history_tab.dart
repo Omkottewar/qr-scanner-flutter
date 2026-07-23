@@ -629,11 +629,12 @@ class _QrCard extends StatelessWidget {
     final activatedStr = row['date_of_activation']?.toString();
     final activatedDate = DateTime.tryParse(activatedStr ?? '');
     final activated = _formatDate(activatedStr);
-    final validUntil = activatedDate != null
-        ? _formatDate(DateTime(
-                activatedDate.year + 1, activatedDate.month, activatedDate.day)
-            .toIso8601String())
-        : '—';
+    // family_count comes from the /qr/history endpoint (backend runs a
+    // COUNT() on family_details for each QR). Falls back to 0 for older
+    // rows where the field might not be populated yet.
+    final contactCount = (row['family_count'] is int)
+        ? row['family_count'] as int
+        : int.tryParse('${row['family_count']}') ?? 0;
     final isActive = row['is_active'] == true || row['is_active'] == 1;
     final isManual = row['is_manual'] == true || row['is_manual'] == 1;
     // A QR is expired if the server-side flag is off, OR the 365-day window
@@ -753,9 +754,9 @@ class _QrCard extends StatelessWidget {
                 value: activated,
               ),
               _MetaTile(
-                icon: Icons.schedule_rounded,
-                label: 'VALID UNTIL',
-                value: validUntil,
+                icon: Icons.contacts_rounded,
+                label: 'CONTACTS',
+                value: contactCount.toString(),
               ),
             ],
           ),
