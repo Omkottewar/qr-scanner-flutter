@@ -29,7 +29,13 @@ import 'session_store.dart';
 // Failures are logged and swallowed. A broken push pipeline must never
 // keep the user from using the rest of the app.
 
-const String _kAndroidChannelId = 'qr_events';
+// Bumped from 'qr_events' → 'qr_events_v2' because Android LOCKS a
+// channel's importance at creation time: existing installs still had
+// the old channel at default importance and refused to show heads-up
+// notifications no matter what the code passed. A new channel ID
+// forces Android to create a fresh channel with Importance.high, which
+// finally lets the popup banner appear.
+const String _kAndroidChannelId = 'qr_events_v2';
 const String _kAndroidChannelName = 'QR events';
 const String _kAndroidChannelDesc =
     'Scans, calls, and other events on your QR.';
@@ -91,12 +97,19 @@ class PushService {
     final androidPlugin =
         _local.resolvePlatformSpecificImplementation<
             AndroidFlutterLocalNotificationsPlugin>();
+    // Remove the legacy 'qr_events' channel left over from earlier installs.
+    // Otherwise the OS settings screen shows two identically-named channels
+    // and the old one (created at default importance) still receives some
+    // routed pushes, keeping the "no heads-up" bug alive.
+    await androidPlugin?.deleteNotificationChannel('qr_events');
     await androidPlugin?.createNotificationChannel(
       const AndroidNotificationChannel(
         _kAndroidChannelId,
         _kAndroidChannelName,
         description: _kAndroidChannelDesc,
         importance: Importance.high,
+        enableVibration: true,
+        playSound: true,
       ),
     );
   }
@@ -181,8 +194,19 @@ class PushService {
           importance: Importance.high,
           priority: Priority.high,
           icon: '@mipmap/ic_launcher',
+          // Heads-up banner requires playSound + enableVibration on top of
+          // Priority.high. Without these, some OEMs (Xiaomi, Oppo) still
+          // suppress the popup even for HIGH-importance channels.
+          playSound: true,
+          enableVibration: true,
+          category: AndroidNotificationCategory.message,
+          visibility: NotificationVisibility.public,
         ),
-        iOS: const DarwinNotificationDetails(),
+        iOS: const DarwinNotificationDetails(
+          presentAlert: true,
+          presentBanner: true,
+          presentSound: true,
+        ),
       ),
     );
   }

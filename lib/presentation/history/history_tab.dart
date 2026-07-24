@@ -80,8 +80,8 @@ class HistoryTabState extends State<HistoryTab> {
       .length;
 
   // Opens the renewal bottom sheet for the tapped QR. On success (true)
-  // we refresh so the "VALID UNTIL" tile and ACTIVE/EXPIRED pill update
-  // immediately.
+  // we refresh so the ACTIVE/EXPIRED pill and any post-renewal state
+  // update immediately.
   Future<void> _openRenew(Map<String, dynamic> row) async {
     final id = (row['id'] is int)
         ? row['id'] as int
