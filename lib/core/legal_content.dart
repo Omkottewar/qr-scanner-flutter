@@ -470,7 +470,7 @@ abstract final class LegalContent {
         body:
             'Email: $supportEmail\n'
             'Phone: $supportPhone\n'
-            'Hours: 9 to 9',
+            'Hours: 9 AM to 9 PM',
       ),
       LegalSection(
         heading: 'Postal Address',
