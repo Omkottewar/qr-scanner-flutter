@@ -1,14 +1,12 @@
 class FamilyContactDraft {
-  FamilyContactDraft({this.name = '', this.phone = '', this.relation = 'Father'});
+  FamilyContactDraft({this.name = '', this.phone = ''});
 
   String name;
   String phone;
-  String relation;
 
   Map<String, dynamic> toJson() => {
         'name': name.trim(),
         'phone': phone.trim(),
-        'relation': relation,
       };
 }
 

@@ -42,7 +42,7 @@ class HomeTab extends StatelessWidget {
                     color: Color(0xFFFF7A00),
                     icon: Icons.qr_code_2_rounded,
                     title: 'Generate your QR',
-                    desc: 'Add up to 5 trusted emergency contacts in minutes.',
+                    desc: 'Add up to 4 trusted emergency contacts in minutes.',
                   ),
                   const SizedBox(height: 12),
                   const _Step(
@@ -707,7 +707,7 @@ class _SubscriptionCard extends StatelessWidget {
   }
 
   static const _features = <String>[
-    'Up to 5 trusted emergency contacts',
+    'Up to 4 trusted emergency contacts',
     'Private calls with secure number masking',
     'Unlimited QR scans & emergency calls',
     'Spam call protection against repeated callers',

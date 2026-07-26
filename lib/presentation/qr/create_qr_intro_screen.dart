@@ -142,7 +142,7 @@ class CreateQrIntroScreen extends StatelessWidget {
                     color: Color(0xFFFF7A00),
                     title: 'Vehicle & contacts',
                     desc:
-                        'Add your vehicle and up to 5 emergency contacts.',
+                        'Add your vehicle and up to 4 emergency contacts.',
                   ),
                   const SizedBox(height: 12),
                   const _StepRow(

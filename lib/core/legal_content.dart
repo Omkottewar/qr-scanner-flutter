@@ -85,7 +85,7 @@ abstract final class LegalContent {
             '• Full Name\n'
             '• Mobile Number (required for OTP verification)\n'
             '• Vehicle Number\n'
-            '• Emergency Contacts (minimum 1 and maximum 5), including '
+            '• Emergency Contacts (minimum 1 and maximum 4), including '
             'each contact\'s name and mobile number.\n'
             '• Blood Group (Mandatory) — Required to help emergency '
             'responders and first responders identify your blood group '

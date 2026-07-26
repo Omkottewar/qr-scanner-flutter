@@ -827,7 +827,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
                               const SizedBox(height: 6),
                               ...[
                                 'Generate QR Codes',
-                                'Up to 5 Emergency Contacts',
+                                'Up to 4 Emergency Contacts',
                                 'Call Masking Feature',
                                 'Waterproof QR Sticker',
                                 'Lifetime access · No annual renewal',

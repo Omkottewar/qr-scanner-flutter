@@ -86,17 +86,6 @@ Future<({String state, String city})?> _lookupPincode(String pin) async {
   }
 }
 
-// Slash-grouped so the picker shows 5 buttons instead of 9. Matches backend
-// RELATIONS set in qr.service.js — legacy singular values were rewritten by
-// migration 018.
-const _relations = [
-  'Father/Mother',
-  'Sister/Brother',
-  'Husband/Wife',
-  'Son/Daughter',
-  'Other',
-];
-
 // Forces every keystroke into uppercase — TextCapitalization.characters
 // only sets the keyboard hint on Android, so lowercase can still slip in
 // via paste or third-party keyboards.
@@ -136,7 +125,7 @@ class _CreateQrFormScreenState extends State<CreateQrFormScreen> {
   final _addressLine1 = TextEditingController();
   final _addressLine2 = TextEditingController();
   final _city = TextEditingController();
-  String? _state; // picked from _indianStates dropdown
+  String? _state = 'Maharashtra'; // default; pincode autofill can override
   final _pincode = TextEditingController();
   // Track pincode-lookup lifecycle so the UI can show a spinner and so
   // we can ignore stale results (user typed 6 digits, then edited).
@@ -199,7 +188,7 @@ class _CreateQrFormScreenState extends State<CreateQrFormScreen> {
   }
 
   void _addContact() {
-    if (_contacts.length >= 5) return;
+    if (_contacts.length >= 4) return;
     setState(() => _contacts.add(_ContactRow()));
   }
 
@@ -213,7 +202,6 @@ class _CreateQrFormScreenState extends State<CreateQrFormScreen> {
         final only = _contacts[0];
         only.name.clear();
         only.phone.clear();
-        only.relation = 'Father/Mother';
         return;
       }
       final row = _contacts.removeAt(index);
@@ -238,7 +226,7 @@ class _CreateQrFormScreenState extends State<CreateQrFormScreen> {
       final n = c.name.text.trim();
       final p = c.phone.text.trim().replaceAll(RegExp(r'\s'), '');
 
-      family.add(FamilyContactDraft(name: n, phone: p, relation: c.relation));
+      family.add(FamilyContactDraft(name: n, phone: p));
     }
 
     final draft = CreateQrDraft(
@@ -356,7 +344,7 @@ class _CreateQrFormScreenState extends State<CreateQrFormScreen> {
                           EaTextField(
                             controller: _vehicle,
                             label: 'Vehicle Number *',
-                            hint: 'e.g., MH12AB1234 or 22BH1234AA',
+                            hint: 'Enter vehicle number',
                             textCapitalization: TextCapitalization.characters,
                             inputFormatters: const [_UpperCaseFormatter()],
                             validator: (v) {
@@ -366,10 +354,6 @@ class _CreateQrFormScreenState extends State<CreateQrFormScreen> {
                               }
                               return null;
                             },
-                          ),
-                          Text(
-                            '*Format: standard Indian registration or BH-series (e.g., 22BH1234AA)',
-                            style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppColors.textSecondary),
                           ),
                           const SizedBox(height: 14),
                           Text('Blood Group *', style: Theme.of(context).inputDecorationTheme.labelStyle),
@@ -401,13 +385,8 @@ class _CreateQrFormScreenState extends State<CreateQrFormScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Shipping Address',
+                            'Address',
                             style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w800),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            'Where should we ship your printed QR sticker?',
-                            style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppColors.textSecondary),
                           ),
                           const SizedBox(height: 14),
                           EaTextField(
@@ -536,7 +515,7 @@ class _CreateQrFormScreenState extends State<CreateQrFormScreen> {
                                   style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w800),
                                 ),
                               ),
-                              if (_contacts.length < 5)
+                              if (_contacts.length < 4)
                                 OutlinedButton(
                                   onPressed: _addContact,
                                   child: const Text('+ Add'),
@@ -583,61 +562,22 @@ class _CreateQrFormScreenState extends State<CreateQrFormScreen> {
                                       validator: (v) => (v == null || v.trim().isEmpty) ? 'This field is required' : null,
                                     ),
                                     const SizedBox(height: 8),
-                                    Row(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Expanded(
-                                          flex: 5,
-                                          child: Column(
-                                            crossAxisAlignment: CrossAxisAlignment.start,
-                                            children: [
-                                              Text(
-                                                'Relationship *',
-                                                style: Theme.of(context).inputDecorationTheme.labelStyle,
-                                              ),
-                                              const SizedBox(height: 6),
-                                              DropdownButtonFormField<String>(
-                                                // ignore: deprecated_member_use
-                                                value: c.relation,
-                                                decoration: InputDecoration(
-                                                  filled: true,
-                                                  fillColor: AppColors.inputFill,
-                                                  border: OutlineInputBorder(
-                                                    borderRadius: BorderRadius.circular(12),
-                                                    borderSide: BorderSide.none,
-                                                  ),
-                                                  contentPadding: const EdgeInsets.symmetric(horizontal: 12),
-                                                ),
-                                                items: _relations
-                                                    .map((r) => DropdownMenuItem(value: r, child: Text(r)))
-                                                    .toList(),
-                                                onChanged: (v) => setState(() => c.relation = v ?? c.relation),
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                        const SizedBox(width: 8),
-                                        Expanded(
-                                          flex: 5,
-                                          child: EaTextField(
-                                            controller: c.phone,
-                                            label: 'Phone Number *',
-                                            hint: '10-digit number',
-                                            keyboardType: TextInputType.phone,
-                                            maxLength: 10,
-                                            inputFormatters: [
-                                              FilteringTextInputFormatter.digitsOnly,
-                                            ],
-                                            validator: (v) {
-                                              if (v == null || v.trim().isEmpty) return 'This field is required';
-                                              if (!RegExp(r'^[0-9]{10}$').hasMatch(v.trim())) {
-                                                return 'Please enter a valid 10-digit mobile number';
-                                              }
-                                              return null;
-                                            },
-                                          ),
-                                        ),
+                                    EaTextField(
+                                      controller: c.phone,
+                                      label: 'Phone Number *',
+                                      hint: '10-digit number',
+                                      keyboardType: TextInputType.phone,
+                                      maxLength: 10,
+                                      inputFormatters: [
+                                        FilteringTextInputFormatter.digitsOnly,
                                       ],
+                                      validator: (v) {
+                                        if (v == null || v.trim().isEmpty) return 'This field is required';
+                                        if (!RegExp(r'^[0-9]{10}$').hasMatch(v.trim())) {
+                                          return 'Please enter a valid 10-digit mobile number';
+                                        }
+                                        return null;
+                                      },
                                     ),
                                   ],
                                 ),
@@ -645,7 +585,7 @@ class _CreateQrFormScreenState extends State<CreateQrFormScreen> {
                             );
                           }),
                           Text(
-                            '*You can add up to 5 emergency contacts',
+                            '*You can add up to 4 emergency contacts',
                             style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppColors.textSecondary),
                           ),
                         ],
@@ -673,11 +613,10 @@ class _CreateQrFormScreenState extends State<CreateQrFormScreen> {
 }
 
 class _ContactRow {
-  _ContactRow() : name = TextEditingController(), phone = TextEditingController(), relation = 'Father/Mother';
+  _ContactRow() : name = TextEditingController(), phone = TextEditingController();
 
   final TextEditingController name;
   final TextEditingController phone;
-  String relation;
 
   void dispose() {
     name.dispose();

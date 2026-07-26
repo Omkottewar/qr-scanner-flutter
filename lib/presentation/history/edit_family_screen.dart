@@ -10,26 +10,6 @@ import '../widgets/ea_text_field.dart';
 import '../widgets/info_banner.dart';
 import '../widgets/scale_tap.dart';
 
-// Slash-grouped so the picker shows 5 pill buttons. Legacy singular values
-// (Father / Mother / Sister / Brother) were rewritten by migration 018;
-// _normalizeRelation() below maps anything unexpected onto the closest new
-// group so an old row loaded from the API doesn't blank out the picker.
-const _relations = [
-  'Father/Mother',
-  'Sister/Brother',
-  'Husband/Wife',
-  'Son/Daughter',
-  'Other',
-];
-
-String _normalizeRelation(String raw) {
-  final s = raw.trim();
-  if (_relations.contains(s)) return s;
-  if (s == 'Father' || s == 'Mother') return 'Father/Mother';
-  if (s == 'Sister' || s == 'Brother') return 'Sister/Brother';
-  return 'Other';
-}
-
 class EditFamilyScreen extends StatefulWidget {
   const EditFamilyScreen({
     super.key,
@@ -94,7 +74,6 @@ class _EditFamilyScreenState extends State<EditFamilyScreen> {
           _contacts.add(_ContactRow(
             name: m['name']?.toString() ?? '',
             phone: m['phone']?.toString() ?? '',
-            relation: _normalizeRelation(m['relation']?.toString() ?? ''),
           ));
         }
         if (_contacts.isEmpty) _contacts.add(_ContactRow());
@@ -110,7 +89,7 @@ class _EditFamilyScreenState extends State<EditFamilyScreen> {
   }
 
   void _addContact() {
-    if (_contacts.length >= 5) return;
+    if (_contacts.length >= 4) return;
     HapticFeedback.lightImpact();
     setState(() => _contacts.add(_ContactRow()));
   }
@@ -142,7 +121,6 @@ class _EditFamilyScreenState extends State<EditFamilyScreen> {
                   'name': c.name.text.trim(),
                   'phone':
                       c.phone.text.trim().replaceAll(RegExp(r'\s'), ''),
-                  'relation': c.relation,
                 })
             .toList(),
       };
@@ -281,7 +259,7 @@ class _EditFamilyScreenState extends State<EditFamilyScreen> {
                                   const SizedBox(height: 14),
                                   const InfoBanner(
                                     text:
-                                        'These are the people contacted when someone scans your QR. Up to 5 allowed.',
+                                        'These are the people contacted when someone scans your QR. Up to 4 allowed.',
                                   ),
                                   const SizedBox(height: 18),
                                   ...List.generate(_contacts.length, (i) {
@@ -293,19 +271,15 @@ class _EditFamilyScreenState extends State<EditFamilyScreen> {
                                         contact: _contacts[i],
                                         canRemove: _contacts.length > 1,
                                         onRemove: () => _removeContact(i),
-                                        onRelationChanged: (v) {
-                                          setState(() =>
-                                              _contacts[i].relation = v);
-                                        },
                                       ),
                                     );
                                   }),
-                                  if (_contacts.length < 5)
+                                  if (_contacts.length < 4)
                                     _AddContactButton(onTap: _addContact),
                                   const SizedBox(height: 14),
                                   Center(
                                     child: Text(
-                                      '${_contacts.length}/5 contacts',
+                                      '${_contacts.length}/4 contacts',
                                       style: const TextStyle(
                                         color: AppColors.textTertiary,
                                         fontSize: 12,
@@ -338,13 +312,12 @@ class _EditFamilyScreenState extends State<EditFamilyScreen> {
 }
 
 class _ContactRow {
-  _ContactRow({String name = '', String phone = '', this.relation = 'Father/Mother'})
+  _ContactRow({String name = '', String phone = ''})
       : name = TextEditingController(text: name),
         phone = TextEditingController(text: phone);
 
   final TextEditingController name;
   final TextEditingController phone;
-  String relation;
 
   void dispose() {
     name.dispose();
@@ -468,14 +441,12 @@ class _ContactCard extends StatelessWidget {
     required this.contact,
     required this.canRemove,
     required this.onRemove,
-    required this.onRelationChanged,
   });
 
   final int index;
   final _ContactRow contact;
   final bool canRemove;
   final VoidCallback onRemove;
-  final ValueChanged<String> onRelationChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -576,74 +547,8 @@ class _ContactCard extends StatelessWidget {
               return null;
             },
           ),
-          const SizedBox(height: 14),
-          Text(
-            'Relationship *',
-            style: Theme.of(context).inputDecorationTheme.labelStyle,
-          ),
-          const SizedBox(height: 8),
-          _RelationPicker(
-            value: contact.relation,
-            onChanged: onRelationChanged,
-          ),
         ],
       ),
-    );
-  }
-}
-
-class _RelationPicker extends StatelessWidget {
-  const _RelationPicker({required this.value, required this.onChanged});
-
-  final String value;
-  final ValueChanged<String> onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    return Wrap(
-      spacing: 8,
-      runSpacing: 8,
-      children: _relations.map((r) {
-        final selected = r == value;
-        return ScaleTap(
-          onTap: () {
-            HapticFeedback.selectionClick();
-            onChanged(r);
-          },
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 180),
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
-            decoration: BoxDecoration(
-              gradient: selected ? AppColors.brandGradient : null,
-              color: selected ? null : AppColors.inputFill,
-              borderRadius: BorderRadius.circular(11),
-              border: Border.all(
-                color: selected
-                    ? Colors.transparent
-                    : AppColors.hairline,
-              ),
-              boxShadow: selected
-                  ? [
-                      BoxShadow(
-                        color: AppColors.primary.withValues(alpha: 0.35),
-                        blurRadius: 14,
-                        offset: const Offset(0, 6),
-                      ),
-                    ]
-                  : null,
-            ),
-            child: Text(
-              r,
-              style: TextStyle(
-                color: selected ? Colors.white : AppColors.textSecondary,
-                fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
-                fontSize: 12.5,
-                letterSpacing: 0.1,
-              ),
-            ),
-          ),
-        );
-      }).toList(),
     );
   }
 }
