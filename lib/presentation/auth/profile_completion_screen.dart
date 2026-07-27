@@ -51,6 +51,16 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
     super.dispose();
   }
 
+  // Matches the shared label style used across create_qr_form_screen so
+  // the two flows feel visually consistent — bigger + bold + centered.
+  TextStyle? _fieldLabelStyle(BuildContext c) => Theme.of(c)
+      .textTheme
+      .titleSmall
+      ?.copyWith(
+        fontWeight: FontWeight.w700,
+        color: AppColors.textPrimary,
+      );
+
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
     HapticFeedback.lightImpact();
@@ -150,6 +160,7 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
                     prefixIcon: Icons.phone_android_rounded,
                     readOnly: true,
                     enabled: false,
+                    labelStyle: _fieldLabelStyle(context),
                   ),
                   const SizedBox(height: 16),
                   EaTextField(
@@ -158,6 +169,7 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
                     hint: 'Enter your full name',
                     prefixIcon: Icons.person_outline_rounded,
                     textCapitalization: TextCapitalization.words,
+                    labelStyle: _fieldLabelStyle(context),
                     validator: (v) {
                       final s = (v ?? '').trim();
                       if (s.isEmpty) return 'Name is required';
@@ -172,6 +184,7 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
                     hint: 'you@example.com',
                     prefixIcon: Icons.email_outlined,
                     keyboardType: TextInputType.emailAddress,
+                    labelStyle: _fieldLabelStyle(context),
                     validator: (v) {
                       final s = (v ?? '').trim();
                       if (s.isEmpty) return null; // optional

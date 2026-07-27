@@ -53,8 +53,19 @@ const Color _kRed = Color(0xFFE51E25);
 const Color _kRedLight = Color(0xFFF26066);
 const Color _kRedDark = Color(0xFFB71218);
 const Color _kFooterDark = Color(0xFFA61016);
-const Color _kPillEdge = Color(0xFF8E0F16);
 const Color _kInk = Color(0xFF0F1115);
+
+// Insert dashes between the segments of an Indian vehicle plate to match
+// the printed sticker artwork (MH12AE0786 → MH12-AE-0786). Falls through
+// unchanged if the format is unrecognised so legacy values still render.
+String _formatVehicleNumber(String raw) {
+  final s = raw.replaceAll(RegExp(r'[\s-]+'), '').toUpperCase();
+  final std = RegExp(r'^([A-Z]{2})([0-9]{2})([A-Z]{1,2})([0-9]{4})$').firstMatch(s);
+  if (std != null) return '${std[1]}${std[2]}-${std[3]}-${std[4]}';
+  final bh = RegExp(r'^([0-9]{2})(BH)([0-9]{4})([A-Z]{1,2})$').firstMatch(s);
+  if (bh != null) return '${bh[1]}-${bh[2]}-${bh[3]}-${bh[4]}';
+  return s;
+}
 
 class QrDetailCard extends StatefulWidget {
   const QrDetailCard({
@@ -240,7 +251,10 @@ class _StickerSurface extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final showVehicle = !isManual && vehicleNumber.trim().isNotEmpty;
+    // Show the vehicle number whenever it's supplied — matches the
+    // printed sticker artwork. Pre-activation manual QRs pass an empty
+    // string, so this still hides the line for those.
+    final showVehicle = vehicleNumber.trim().isNotEmpty;
 
     return Container(
       width: 460,
@@ -363,7 +377,7 @@ class _Body extends StatelessWidget {
         children: [
           if (showVehicle) ...[
             Text(
-              vehicleNumber.toUpperCase(),
+              _formatVehicleNumber(vehicleNumber),
               textAlign: TextAlign.center,
               style: _mono(
                 size: 26,
@@ -460,8 +474,9 @@ class _Body extends StatelessWidget {
   }
 }
 
-// Red pill with black digits — gradient + drop shadow give it the
-// "inlaid enamel plate" 3D feel that matches the backend renderer.
+// White pill with red digits and a thin dark outline — matches the
+// printed sticker artwork exactly. Kept flat so the digits pop crisply
+// against the plain white body.
 class _ExtensionPill extends StatelessWidget {
   const _ExtensionPill({required this.digits});
   final String digits;
@@ -472,48 +487,20 @@ class _ExtensionPill extends StatelessWidget {
       width: 150,
       height: 44,
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [Color(0xFFF04347), _kRed, Color(0xFFC11821)],
-          stops: [0.0, 0.55, 1.0],
-        ),
+        color: Colors.white,
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: _kPillEdge, width: 0.8),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.28),
-            blurRadius: 3,
-            offset: const Offset(0, 1.5),
-          ),
-        ],
+        border: Border.all(color: _kInk, width: 1.4),
       ),
-      child: Stack(
-        children: [
-          // Top gloss strip
-          Positioned(
-            left: 2,
-            right: 2,
-            top: 2,
-            child: Container(
-              height: 44 * 0.42,
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.14),
-                borderRadius: BorderRadius.circular(6),
-              ),
-            ),
+      child: Center(
+        child: Text(
+          digits.isNotEmpty ? digits : '—',
+          style: _mono(
+            size: 26,
+            color: _kRed,
+            letterSpacing: 1.5,
+            height: 1.0,
           ),
-          Center(
-            child: Text(
-              digits.isNotEmpty ? digits : '—',
-              style: _mono(
-                size: 26,
-                letterSpacing: 1.5,
-                height: 1.0,
-              ),
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../../core/theme/app_colors.dart';
@@ -27,9 +29,9 @@ class CreateQrIntroScreen extends StatelessWidget {
                 children: [
                   const _TopBar(title: 'Create QR', subtitle: 'STEP 1 OF 3'),
                   const SizedBox(height: 24),
-                  // QR hero card
+                  // Hero card — image slider replaces the previous fake QR.
                   GlassCard(
-                    padding: const EdgeInsets.fromLTRB(24, 32, 24, 28),
+                    padding: const EdgeInsets.fromLTRB(8, 16, 8, 22),
                     child: Stack(
                       clipBehavior: Clip.none,
                       children: [
@@ -54,61 +56,10 @@ class CreateQrIntroScreen extends StatelessWidget {
                         ),
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.center,
-                          children: [
-                            // Fake QR
-                            Stack(
-                              clipBehavior: Clip.none,
-                              children: [
-                                Container(
-                                  width: 176,
-                                  height: 176,
-                                  decoration: BoxDecoration(
-                                    color: Colors.white,
-                                    borderRadius: BorderRadius.circular(28),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: AppColors.primary
-                                            .withValues(alpha: 0.45),
-                                        blurRadius: 50,
-                                        spreadRadius: -10,
-                                        offset: const Offset(0, 22),
-                                      ),
-                                    ],
-                                  ),
-                                  padding: const EdgeInsets.all(20),
-                                  child: const _FakeQr(),
-                                ),
-                                Positioned(
-                                  right: -12,
-                                  bottom: -12,
-                                  child: Container(
-                                    width: 48,
-                                    height: 48,
-                                    alignment: Alignment.center,
-                                    decoration: BoxDecoration(
-                                      gradient: AppColors.brandGradient,
-                                      shape: BoxShape.circle,
-                                      boxShadow: [
-                                        BoxShadow(
-                                          color: AppColors.primary
-                                              .withValues(alpha: 0.7),
-                                          blurRadius: 24,
-                                          spreadRadius: -6,
-                                          offset: const Offset(0, 12),
-                                        ),
-                                      ],
-                                    ),
-                                    child: const Icon(
-                                      Icons.qr_code_scanner_rounded,
-                                      color: Colors.white,
-                                      size: 22,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 28),
-                            const Text(
+                          children: const [
+                            _CreateQrSlider(),
+                            SizedBox(height: 22),
+                            Text(
                               'Create your Emergency QR',
                               textAlign: TextAlign.center,
                               style: TextStyle(
@@ -118,8 +69,8 @@ class CreateQrIntroScreen extends StatelessWidget {
                                 letterSpacing: -0.5,
                               ),
                             ),
-                            const SizedBox(height: 8),
-                            const Padding(
+                            SizedBox(height: 8),
+                            Padding(
                               padding: EdgeInsets.symmetric(horizontal: 8),
                               child: Text(
                                 'Generate, print, and stick it on your windshield in three short steps.',
@@ -339,39 +290,116 @@ class _TopBar extends StatelessWidget {
   }
 }
 
-class _FakeQr extends StatelessWidget {
-  const _FakeQr();
+class _CreateQrSlider extends StatefulWidget {
+  const _CreateQrSlider();
 
-  static const _pattern = <String>[
-    '1011010110',
-    '0110101001',
-    '1010110100',
-    '1101001011',
-    '0101101010',
-    '1010010110',
-    '0110101101',
-    '1001010110',
-    '0110110101',
-    '1011001010',
+  static const List<String> _images = [
+    'assets/images/create_qr_slide_1.png',
+    'assets/images/create_qr_slide_2.png',
+    'assets/images/create_qr_slide_3.png',
+    'assets/images/create_qr_slide_4.png',
+    'assets/images/create_qr_slide_5.png',
+    'assets/images/create_qr_slide_6.png',
   ];
 
   @override
+  State<_CreateQrSlider> createState() => _CreateQrSliderState();
+}
+
+class _CreateQrSliderState extends State<_CreateQrSlider> {
+  final PageController _controller = PageController(viewportFraction: 0.94);
+  int _index = 0;
+  Timer? _autoAdvance;
+
+  @override
+  void initState() {
+    super.initState();
+    _autoAdvance = Timer.periodic(const Duration(seconds: 4), (_) {
+      if (!_controller.hasClients) return;
+      final next = (_index + 1) % _CreateQrSlider._images.length;
+      _controller.animateToPage(
+        next,
+        duration: const Duration(milliseconds: 450),
+        curve: Curves.easeOutCubic,
+      );
+    });
+  }
+
+  @override
+  void dispose() {
+    _autoAdvance?.cancel();
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return GridView.count(
-      crossAxisCount: 10,
-      mainAxisSpacing: 2,
-      crossAxisSpacing: 2,
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
+    return Column(
       children: [
-        for (final row in _pattern)
-          for (final c in row.split(''))
-            DecoratedBox(
+        AspectRatio(
+          aspectRatio: 4 / 3,
+          child: PageView.builder(
+            controller: _controller,
+            onPageChanged: (i) => setState(() => _index = i),
+            itemCount: _CreateQrSlider._images.length,
+            itemBuilder: (context, i) {
+              return Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 4),
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(22),
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppColors.primary.withValues(alpha: 0.35),
+                        blurRadius: 40,
+                        spreadRadius: -14,
+                        offset: const Offset(0, 20),
+                      ),
+                    ],
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(22),
+                    child: Image.asset(
+                      _CreateQrSlider._images[i],
+                      fit: BoxFit.cover,
+                      gaplessPlayback: true,
+                      errorBuilder: (context, error, stack) => const ColoredBox(
+                        color: Color(0xFF11151D),
+                        child: Center(
+                          child: Icon(
+                            Icons.image_outlined,
+                            color: Colors.white24,
+                            size: 48,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+        const SizedBox(height: 14),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: List.generate(_CreateQrSlider._images.length, (i) {
+            final selected = i == _index;
+            return AnimatedContainer(
+              duration: const Duration(milliseconds: 250),
+              margin: const EdgeInsets.symmetric(horizontal: 3),
+              width: selected ? 20 : 7,
+              height: 7,
               decoration: BoxDecoration(
-                color: c == '1' ? const Color(0xFF06090F) : Colors.transparent,
-                borderRadius: BorderRadius.circular(1.5),
+                gradient: selected ? AppColors.brandGradient : null,
+                color: selected
+                    ? null
+                    : Colors.white.withValues(alpha: 0.18),
+                borderRadius: BorderRadius.circular(4),
               ),
-            ),
+            );
+          }),
+        ),
       ],
     );
   }

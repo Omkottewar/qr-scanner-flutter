@@ -133,7 +133,10 @@ class _CreateQrFormScreenState extends State<CreateQrFormScreen> {
   int _pincodeLookupToken = 0;
   Timer? _pincodeDebounce;
 
-  final List<_ContactRow> _contacts = [_ContactRow()];
+  // Four contact rows are always shown. Row 0 is mandatory; rows 1-3
+  // are optional and skipped on submit if left blank. UI no longer
+  // supports adding/removing rows — the count is fixed at 4.
+  final List<_ContactRow> _contacts = List.generate(4, (_) => _ContactRow());
   // Non-blocking loading indicator for the submit button — form
   // validation + vehicle-check + navigation-to-payment all run through
   // this single flag so the button stays disabled with a spinner while
@@ -187,27 +190,26 @@ class _CreateQrFormScreenState extends State<CreateQrFormScreen> {
     });
   }
 
-  void _addContact() {
-    if (_contacts.length >= 4) return;
-    setState(() => _contacts.add(_ContactRow()));
-  }
+  // Shared label styles. Card headers are prominent + centered; field
+  // labels are bold and one size up from the input-theme default but
+  // stay left-aligned above their inputs (easier to scan when the eye
+  // is moving vertically down the form).
+  TextStyle? _cardHeaderStyle(BuildContext c) => Theme.of(c)
+      .textTheme
+      .titleLarge
+      ?.copyWith(
+        fontWeight: FontWeight.w800,
+        color: AppColors.textPrimary,
+        letterSpacing: -0.3,
+      );
 
-  // Removes a contact row. If it's the last remaining one we don't drop
-  // below 1 — instead we reset its fields so the form still submits with
-  // the minimum required contact.
-  void _removeContact(int index) {
-    if (index < 0 || index >= _contacts.length) return;
-    setState(() {
-      if (_contacts.length == 1) {
-        final only = _contacts[0];
-        only.name.clear();
-        only.phone.clear();
-        return;
-      }
-      final row = _contacts.removeAt(index);
-      row.dispose();
-    });
-  }
+  TextStyle? _fieldLabelStyle(BuildContext c) => Theme.of(c)
+      .textTheme
+      .titleSmall
+      ?.copyWith(
+        fontWeight: FontWeight.w700,
+        color: AppColors.textPrimary,
+      );
 
   Future<void> _submit() async {
     if (_submitting) return; // prevent double-tap
@@ -220,12 +222,15 @@ class _CreateQrFormScreenState extends State<CreateQrFormScreen> {
       return;
     }
 
+    // Rows 1-3 are optional — a row with both name and phone blank is
+    // dropped silently instead of failing validation, so the user can
+    // register with just the mandatory Contact 1.
     final family = <FamilyContactDraft>[];
     for (var i = 0; i < _contacts.length; i++) {
       final c = _contacts[i];
       final n = c.name.text.trim();
       final p = c.phone.text.trim().replaceAll(RegExp(r'\s'), '');
-
+      if (i > 0 && n.isEmpty && p.isEmpty) continue;
       family.add(FamilyContactDraft(name: n, phone: p));
     }
 
@@ -294,17 +299,19 @@ class _CreateQrFormScreenState extends State<CreateQrFormScreen> {
                   children: [
                     EaCard(
                       child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
                           Text(
                             'Personal Information',
-                            style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w800),
+                            textAlign: TextAlign.center,
+                            style: _cardHeaderStyle(context),
                           ),
                           const SizedBox(height: 14),
                           EaTextField(
                             controller: _name,
                             label: 'Full Name *',
                             hint: 'Enter your full name',
+                            labelStyle: _fieldLabelStyle(context),
                             validator: (v) => (v == null || v.trim().isEmpty) ? 'This field is required' : null,
                           ),
                           const SizedBox(height: 14),
@@ -315,6 +322,7 @@ class _CreateQrFormScreenState extends State<CreateQrFormScreen> {
                             keyboardType: TextInputType.phone,
                             prefixIcon: Icons.phone_android_rounded,
                             maxLength: 10,
+                            labelStyle: _fieldLabelStyle(context),
                             inputFormatters: [
                               FilteringTextInputFormatter.digitsOnly,
                             ],
@@ -331,6 +339,7 @@ class _CreateQrFormScreenState extends State<CreateQrFormScreen> {
                             hint: 'you@example.com',
                             keyboardType: TextInputType.emailAddress,
                             prefixIcon: Icons.email_outlined,
+                            labelStyle: _fieldLabelStyle(context),
                             validator: (v) {
                               final s = (v ?? '').trim();
                               if (s.isEmpty) return 'This field is required';
@@ -344,8 +353,9 @@ class _CreateQrFormScreenState extends State<CreateQrFormScreen> {
                           EaTextField(
                             controller: _vehicle,
                             label: 'Vehicle Number *',
-                            hint: 'Enter vehicle number',
+                            hint: 'MH31CR0289',
                             textCapitalization: TextCapitalization.characters,
+                            labelStyle: _fieldLabelStyle(context),
                             inputFormatters: const [_UpperCaseFormatter()],
                             validator: (v) {
                               if (v == null || v.trim().isEmpty) return 'This field is required';
@@ -356,25 +366,40 @@ class _CreateQrFormScreenState extends State<CreateQrFormScreen> {
                             },
                           ),
                           const SizedBox(height: 14),
-                          Text('Blood Group *', style: Theme.of(context).inputDecorationTheme.labelStyle),
-                          const SizedBox(height: 6),
-                          DropdownButtonFormField<String>(
-                            // ignore: deprecated_member_use
-                            value: _blood == 'Select blood group' ? null : _blood,
-                            hint: const Text('Select blood group'),
-                            decoration: InputDecoration(
-                              filled: true,
-                              fillColor: AppColors.inputFill,
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                                borderSide: BorderSide.none,
+                          Text(
+                            'Blood Group *',
+                            style: _fieldLabelStyle(context),
+                          ),
+                          const SizedBox(height: 8),
+                          // Blood group values are 2–3 chars — a full-width
+                          // dropdown looked comically empty and covered most
+                          // of the screen when opened. Align + SizedBox
+                          // breaks out of the card Column's stretch so the
+                          // trigger (and the popup menu, which inherits the
+                          // trigger's width) size to the content instead.
+                          Align(
+                            alignment: Alignment.centerLeft,
+                            child: SizedBox(
+                              width: 220,
+                              child: DropdownButtonFormField<String>(
+                                // ignore: deprecated_member_use
+                                value: _blood == 'Select blood group' ? null : _blood,
+                                hint: const Text('Select blood group'),
+                                decoration: InputDecoration(
+                                  filled: true,
+                                  fillColor: AppColors.inputFill,
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                    borderSide: BorderSide.none,
+                                  ),
+                                ),
+                                items: _bloodGroups
+                                    .map((b) => DropdownMenuItem(value: b, child: Text(b)))
+                                    .toList(),
+                                onChanged: (v) => setState(() => _blood = v ?? _blood),
+                                validator: (v) => v == null || v.isEmpty ? 'This field is required' : null,
                               ),
                             ),
-                            items: _bloodGroups
-                                .map((b) => DropdownMenuItem(value: b, child: Text(b)))
-                                .toList(),
-                            onChanged: (v) => setState(() => _blood = v ?? _blood),
-                            validator: (v) => v == null || v.isEmpty ? 'This field is required' : null,
                           ),
                         ],
                       ),
@@ -382,17 +407,19 @@ class _CreateQrFormScreenState extends State<CreateQrFormScreen> {
                     const SizedBox(height: 16),
                     EaCard(
                       child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
                           Text(
                             'Address',
-                            style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w800),
+                            textAlign: TextAlign.center,
+                            style: _cardHeaderStyle(context),
                           ),
                           const SizedBox(height: 14),
                           EaTextField(
                             controller: _addressLine1,
                             label: 'Address Line 1 *',
                             hint: 'House/Flat number, Building, Street',
+                            labelStyle: _fieldLabelStyle(context),
                             validator: (v) => (v == null || v.trim().isEmpty)
                                 ? 'Address is required' : null,
                           ),
@@ -401,6 +428,7 @@ class _CreateQrFormScreenState extends State<CreateQrFormScreen> {
                             controller: _addressLine2,
                             label: 'Address Line 2',
                             hint: 'Landmark, Area (optional)',
+                            labelStyle: _fieldLabelStyle(context),
                           ),
                           const SizedBox(height: 14),
                           // Pincode goes ABOVE city/state so the postal
@@ -414,6 +442,7 @@ class _CreateQrFormScreenState extends State<CreateQrFormScreen> {
                             hint: '6-digit postal code',
                             keyboardType: TextInputType.number,
                             maxLength: 6,
+                            labelStyle: _fieldLabelStyle(context),
                             inputFormatters: [
                               FilteringTextInputFormatter.digitsOnly,
                             ],
@@ -449,6 +478,7 @@ class _CreateQrFormScreenState extends State<CreateQrFormScreen> {
                                   controller: _city,
                                   label: 'City *',
                                   hint: 'e.g., Pune',
+                                  labelStyle: _fieldLabelStyle(context),
                                   validator: (v) => (v == null || v.trim().isEmpty)
                                       ? 'Required' : null,
                                 ),
@@ -456,11 +486,11 @@ class _CreateQrFormScreenState extends State<CreateQrFormScreen> {
                               const SizedBox(width: 12),
                               Expanded(
                                 child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  crossAxisAlignment: CrossAxisAlignment.stretch,
                                   children: [
                                     Text(
                                       'State *',
-                                      style: Theme.of(context).inputDecorationTheme.labelStyle,
+                                      style: _fieldLabelStyle(context),
                                     ),
                                     const SizedBox(height: 8),
                                     DropdownButtonFormField<String>(
@@ -505,26 +535,17 @@ class _CreateQrFormScreenState extends State<CreateQrFormScreen> {
                     const SizedBox(height: 16),
                     EaCard(
                       child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
-                          Row(
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  'Family Emergency Contacts',
-                                  style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w800),
-                                ),
-                              ),
-                              if (_contacts.length < 4)
-                                OutlinedButton(
-                                  onPressed: _addContact,
-                                  child: const Text('+ Add'),
-                                ),
-                            ],
+                          Text(
+                            'Family Emergency Contacts',
+                            textAlign: TextAlign.center,
+                            style: _cardHeaderStyle(context),
                           ),
                           const SizedBox(height: 12),
                           ...List.generate(_contacts.length, (i) {
                             final c = _contacts[i];
+                            final isRequired = i == 0;
                             return Padding(
                               padding: const EdgeInsets.only(bottom: 12),
                               child: Container(
@@ -534,46 +555,62 @@ class _CreateQrFormScreenState extends State<CreateQrFormScreen> {
                                   borderRadius: BorderRadius.circular(12),
                                 ),
                                 child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  crossAxisAlignment: CrossAxisAlignment.stretch,
                                   children: [
-                                    Row(
-                                      children: [
-                                        Expanded(
-                                          child: Text('Contact ${i + 1}', style: Theme.of(context).textTheme.labelLarge),
-                                        ),
-                                        // Remove-contact affordance. Always shown so a user who
-                                        // accidentally tapped "+ Add" and has no data to fill can
-                                        // back out. Kept enabled even when it's the only row —
-                                        // instead of deleting the last row we clear it, so the
-                                        // form still submits with 1 contact.
-                                        IconButton(
-                                          tooltip: 'Remove this contact',
-                                          icon: const Icon(Icons.delete_outline_rounded,
-                                              color: Colors.redAccent, size: 20),
-                                          onPressed: () => _removeContact(i),
-                                        ),
-                                      ],
+                                    Text(
+                                      'Contact ${i + 1}${isRequired ? '' : ' (optional)'}',
+                                      textAlign: TextAlign.center,
+                                      style: _cardHeaderStyle(context),
                                     ),
-                                    const SizedBox(height: 8),
+                                    const SizedBox(height: 10),
                                     EaTextField(
                                       controller: c.name,
-                                      label: 'Name *',
+                                      label: isRequired ? 'Name *' : 'Name',
                                       hint: 'Contact name',
-                                      validator: (v) => (v == null || v.trim().isEmpty) ? 'This field is required' : null,
+                                      labelStyle: _fieldLabelStyle(context),
+                                      validator: (v) {
+                                        final s = (v ?? '').trim();
+                                        if (isRequired && s.isEmpty) {
+                                          return 'This field is required';
+                                        }
+                                        // Optional row: if name is filled but
+                                        // phone is blank, block submit — half
+                                        // a contact is useless.
+                                        if (!isRequired &&
+                                            s.isEmpty &&
+                                            c.phone.text.trim().isNotEmpty) {
+                                          return 'Name is required when phone is filled';
+                                        }
+                                        return null;
+                                      },
                                     ),
-                                    const SizedBox(height: 8),
+                                    const SizedBox(height: 10),
                                     EaTextField(
                                       controller: c.phone,
-                                      label: 'Phone Number *',
+                                      label: isRequired
+                                          ? 'Phone Number *'
+                                          : 'Phone Number',
                                       hint: '10-digit number',
                                       keyboardType: TextInputType.phone,
                                       maxLength: 10,
+                                      labelStyle: _fieldLabelStyle(context),
                                       inputFormatters: [
                                         FilteringTextInputFormatter.digitsOnly,
                                       ],
                                       validator: (v) {
-                                        if (v == null || v.trim().isEmpty) return 'This field is required';
-                                        if (!RegExp(r'^[0-9]{10}$').hasMatch(v.trim())) {
+                                        final s = (v ?? '').trim();
+                                        if (isRequired && s.isEmpty) {
+                                          return 'This field is required';
+                                        }
+                                        // Optional row: skip if fully blank,
+                                        // otherwise enforce format.
+                                        if (!isRequired && s.isEmpty) {
+                                          if (c.name.text.trim().isNotEmpty) {
+                                            return 'Phone is required when name is filled';
+                                          }
+                                          return null;
+                                        }
+                                        if (!RegExp(r'^[0-9]{10}$').hasMatch(s)) {
                                           return 'Please enter a valid 10-digit mobile number';
                                         }
                                         return null;
@@ -585,7 +622,7 @@ class _CreateQrFormScreenState extends State<CreateQrFormScreen> {
                             );
                           }),
                           Text(
-                            '*You can add up to 4 emergency contacts',
+                            '*Contact 1 is required. Contacts 2–4 are optional.',
                             style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppColors.textSecondary),
                           ),
                         ],

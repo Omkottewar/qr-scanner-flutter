@@ -20,6 +20,8 @@ class EaTextField extends StatefulWidget {
     this.validator,
     this.textCapitalization = TextCapitalization.none,
     this.inputFormatters,
+    this.labelStyle,
+    this.labelAlignment,
   });
 
   final TextEditingController? controller;
@@ -36,6 +38,13 @@ class EaTextField extends StatefulWidget {
   final String? Function(String?)? validator;
   final TextCapitalization textCapitalization;
   final List<TextInputFormatter>? inputFormatters;
+  // Optional overrides — when null the field falls back to the input
+  // theme's label style + left alignment (the existing default used by
+  // every other form on the app). Passed in from create_qr_form_screen's
+  // Family Contacts card so those labels can render bigger/centered
+  // without changing every other field's appearance.
+  final TextStyle? labelStyle;
+  final TextAlign? labelAlignment;
 
   @override
   State<EaTextField> createState() => _EaTextFieldState();
@@ -66,9 +75,14 @@ class _EaTextFieldState extends State<EaTextField> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         if (widget.label != null) ...[
-          Text(
-            widget.label!,
-            style: Theme.of(context).inputDecorationTheme.labelStyle,
+          SizedBox(
+            width: double.infinity,
+            child: Text(
+              widget.label!,
+              textAlign: widget.labelAlignment,
+              style: widget.labelStyle ??
+                  Theme.of(context).inputDecorationTheme.labelStyle,
+            ),
           ),
           const SizedBox(height: 8),
         ],
