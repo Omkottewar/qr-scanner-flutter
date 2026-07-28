@@ -294,12 +294,11 @@ class _CreateQrSlider extends StatefulWidget {
   const _CreateQrSlider();
 
   static const List<String> _images = [
-    'assets/images/create_qr_slide_1.png',
-    'assets/images/create_qr_slide_2.png',
-    'assets/images/create_qr_slide_3.png',
-    'assets/images/create_qr_slide_4.png',
-    'assets/images/create_qr_slide_5.png',
-    'assets/images/create_qr_slide_6.png',
+    'assets/images/create_qr_slide_1.jpeg',
+    'assets/images/create_qr_slide_2.jpeg',
+    'assets/images/create_qr_slide_3.jpeg',
+    'assets/images/create_qr_slide_4.jpeg',
+    'assets/images/create_qr_slide_5.jpeg',
   ];
 
   @override

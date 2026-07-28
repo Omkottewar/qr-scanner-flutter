@@ -256,11 +256,15 @@ class _StickerSurface extends StatelessWidget {
     // string, so this still hides the line for those.
     final showVehicle = vehicleNumber.trim().isNotEmpty;
 
+    // Sticker is composed of a clipped column of coloured bands, with
+    // an outer red border ring painted on top so the stroke isn't
+    // clipped by ClipRRect. Corner radius bumped 22→32 to match the
+    // reference art's rounded corners.
     return Container(
       width: 460,
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(22),
+        borderRadius: BorderRadius.circular(32),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.16),
@@ -269,21 +273,38 @@ class _StickerSurface extends StatelessWidget {
           ),
         ],
       ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(22),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const _Header(),
-            _Body(
-              alertUrl: alertUrl,
-              digits: digits,
-              vehicleNumber: vehicleNumber,
-              showVehicle: showVehicle,
+      child: Stack(
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(32),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const _Header(),
+                _Body(
+                  alertUrl: alertUrl,
+                  digits: digits,
+                  vehicleNumber: vehicleNumber,
+                  showVehicle: showVehicle,
+                ),
+                const _Footer(),
+              ],
             ),
-            const _Footer(),
-          ],
-        ),
+          ),
+          // Outer black border ring — matches backend's stroked rect
+          // over the clip. IgnorePointer so the border never eats taps
+          // that would otherwise reach content underneath.
+          Positioned.fill(
+            child: IgnorePointer(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(32),
+                  border: Border.all(color: _kInk, width: 3),
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -295,9 +316,13 @@ class _Header extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Header sizing matches backend/src/utils/sticker.js buildStickerSvg
+    // exactly: 138px tall, "QR 4 EMERGENCY" at Poppins Black 50pt with
+    // -1.5 tracking to fill ~90% of the 460px sticker width, and
+    // "SCAN TO CALL OWNER" at Poppins SemiBold 20pt with 3.0 tracking.
     return Container(
       width: double.infinity,
-      height: 108,
+      height: 138,
       decoration: const BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topCenter,
@@ -327,21 +352,21 @@ class _Header extends StatelessWidget {
                   'QR 4 EMERGENCY',
                   textAlign: TextAlign.center,
                   style: _poppins(
-                    size: 40,
+                    size: 50,
                     color: Colors.white,
-                    letterSpacing: -0.5,
+                    letterSpacing: -1.5,
                     height: 1.0,
                   ),
                 ),
-                const SizedBox(height: 6),
+                const SizedBox(height: 10),
                 Text(
                   'SCAN TO CALL OWNER',
                   textAlign: TextAlign.center,
                   style: _poppins(
-                    size: 15,
+                    size: 20,
                     weight: FontWeight.w600,
                     color: Colors.white,
-                    letterSpacing: 2.4,
+                    letterSpacing: 3.0,
                     height: 1.0,
                   ),
                 ),
@@ -380,13 +405,13 @@ class _Body extends StatelessWidget {
               _formatVehicleNumber(vehicleNumber),
               textAlign: TextAlign.center,
               style: _mono(
-                size: 26,
+                size: 30,
                 color: _kRed,
                 letterSpacing: 1.5,
                 height: 1.0,
               ),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 14),
           ] else
             const SizedBox(height: 4),
 
@@ -439,7 +464,10 @@ class _Body extends StatelessWidget {
           ),
           const SizedBox(height: 12),
 
-          // Bottom row: BE NAYAK + cross + pill + cross + BE NAYAK
+          // Bottom row: BE NAYAK + cross + pill + cross + BE NAYAK.
+          // Sizes match backend/src/utils/sticker.js exactly (Poppins 900
+          // 16pt, cross 28px) so the in-app preview and the printed
+          // vinyl are visually identical.
           SizedBox(
             height: 46,
             child: Row(
@@ -449,18 +477,18 @@ class _Body extends StatelessWidget {
                 Text(
                   'BE NAYAK',
                   style: _poppins(
-                    size: 20,
+                    size: 16,
                     letterSpacing: 0.5,
                     height: 1.0,
                   ),
                 ),
-                const _MedicalCross(size: 24),
+                const _MedicalCross(size: 28),
                 _ExtensionPill(digits: digits),
-                const _MedicalCross(size: 24),
+                const _MedicalCross(size: 28),
                 Text(
                   'BE NAYAK',
                   style: _poppins(
-                    size: 20,
+                    size: 16,
                     letterSpacing: 0.5,
                     height: 1.0,
                   ),
@@ -529,7 +557,7 @@ class _Footer extends StatelessWidget {
           ),
         ),
       ),
-      padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
+      padding: const EdgeInsets.fromLTRB(14, 18, 14, 18),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: const [
@@ -546,7 +574,7 @@ class _Footer extends StatelessWidget {
               ),
             ],
           ),
-          SizedBox(height: 10),
+          SizedBox(height: 14),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
@@ -608,10 +636,17 @@ class _FooterDivider extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: 1,
-      height: 20,
-      color: Colors.white.withValues(alpha: 0.55),
+    // 30px tall so it visually bounds the taller icon+label pair used
+    // in the reference art. Matches backend footerRow2 divider extent.
+    // Outer horizontal padding gives the adjacent icons breathing room —
+    // without it the (P) circle collided with the divider hairline.
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 10),
+      child: Container(
+        width: 1,
+        height: 30,
+        color: Colors.white.withValues(alpha: 0.55),
+      ),
     );
   }
 }
@@ -628,15 +663,16 @@ class _FooterBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Icon + label sizes match backend footerRow2 (ICON_SIZE=22, FONT_SIZE=18).
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(icon, color: iconColor, size: 16),
-        const SizedBox(width: 6),
+        Icon(icon, color: iconColor, size: 22),
+        const SizedBox(width: 8),
         Text(
           label,
           style: _poppins(
-            size: 13,
+            size: 18,
             color: Colors.white,
             letterSpacing: 0.4,
           ),
@@ -683,8 +719,10 @@ class _BracketPainter extends CustomPainter {
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
-/// Red medical/emergency cross with a subtle white highlight strip on
-/// each arm, mirroring the backend's enamel-plate 3D feel.
+/// Flat solid red plus sign — matches the reference artwork and the
+/// backend's cross() helper. Two overlapping bars, no gradient, no
+/// drop shadow, no enamel highlight. The cross is a brand element,
+/// not a lifted badge.
 class _MedicalCross extends StatelessWidget {
   const _MedicalCross({required this.size});
   final double size;
@@ -698,53 +736,15 @@ class _MedicalCross extends StatelessWidget {
       child: Stack(
         alignment: Alignment.center,
         children: [
-          // Base cross with drop shadow — two overlapping bars.
-          DecoratedBox(
-            decoration: BoxDecoration(
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.28),
-                  blurRadius: 2.5,
-                  offset: const Offset(0, 1),
-                ),
-              ],
-            ),
-            child: SizedBox(
-              width: size,
-              height: size,
-              child: Stack(
-                alignment: Alignment.center,
-                children: [
-                  Container(
-                    width: barThickness,
-                    height: size,
-                    color: _kRed,
-                  ),
-                  Container(
-                    width: size,
-                    height: barThickness,
-                    color: _kRed,
-                  ),
-                ],
-              ),
-            ),
+          Container(
+            width: barThickness,
+            height: size,
+            color: _kRed,
           ),
-          // Highlight strips (enamel gloss).
-          Positioned(
-            top: 0.6,
-            child: Container(
-              width: barThickness - 1.2,
-              height: size * 0.18,
-              color: Colors.white.withValues(alpha: 0.20),
-            ),
-          ),
-          Positioned(
-            left: 0.6,
-            child: Container(
-              width: size - 1.2,
-              height: barThickness * 0.35,
-              color: Colors.white.withValues(alpha: 0.16),
-            ),
+          Container(
+            width: size,
+            height: barThickness,
+            color: _kRed,
           ),
         ],
       ),
