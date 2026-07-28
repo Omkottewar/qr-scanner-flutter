@@ -683,9 +683,9 @@ class _FooterBadge extends StatelessWidget {
 }
 
 /// Bold black L-shaped brackets at the four corners of the QR frame.
-/// Painted as filled rectangles (not thin strokes) to match the
-/// backend SVG's 8px-thick × 42px-arm brackets — bumped from 6 so the
-/// bracket weight balances better against the QR modules.
+/// Each bracket is a stroked path with rounded line caps + joins, so
+/// the outer bend curves and the arm tips are semicircular — matches
+/// the backend SVG (stroke-linecap="round", stroke-linejoin="round").
 class _BracketPainter extends CustomPainter {
   const _BracketPainter();
 
@@ -696,23 +696,46 @@ class _BracketPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
       ..color = _kInk
-      ..style = PaintingStyle.fill;
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = _thick
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round;
 
     final w = size.width;
     final h = size.height;
+    final t = _thick / 2;
 
-    // Top-left: horizontal + vertical arm
-    canvas.drawRect(Rect.fromLTWH(0, 0, _arm, _thick), paint);
-    canvas.drawRect(Rect.fromLTWH(0, 0, _thick, _arm), paint);
-    // Top-right
-    canvas.drawRect(Rect.fromLTWH(w - _arm, 0, _arm, _thick), paint);
-    canvas.drawRect(Rect.fromLTWH(w - _thick, 0, _thick, _arm), paint);
-    // Bottom-left
-    canvas.drawRect(Rect.fromLTWH(0, h - _thick, _arm, _thick), paint);
-    canvas.drawRect(Rect.fromLTWH(0, h - _arm, _thick, _arm), paint);
-    // Bottom-right
-    canvas.drawRect(Rect.fromLTWH(w - _arm, h - _thick, _arm, _thick), paint);
-    canvas.drawRect(Rect.fromLTWH(w - _thick, h - _arm, _thick, _arm), paint);
+    // Each corner: arm tip → bend → arm tip. The stroke centerline runs
+    // through the midline of the bracket, so we inset by t (half the
+    // stroke width) from the outer edge.
+    canvas.drawPath(
+      Path()
+        ..moveTo(_arm, t)
+        ..lineTo(t, t)
+        ..lineTo(t, _arm),
+      paint,
+    );
+    canvas.drawPath(
+      Path()
+        ..moveTo(w - _arm, t)
+        ..lineTo(w - t, t)
+        ..lineTo(w - t, _arm),
+      paint,
+    );
+    canvas.drawPath(
+      Path()
+        ..moveTo(_arm, h - t)
+        ..lineTo(t, h - t)
+        ..lineTo(t, h - _arm),
+      paint,
+    );
+    canvas.drawPath(
+      Path()
+        ..moveTo(w - _arm, h - t)
+        ..lineTo(w - t, h - t)
+        ..lineTo(w - t, h - _arm),
+      paint,
+    );
   }
 
   @override
