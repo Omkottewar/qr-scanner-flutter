@@ -317,12 +317,12 @@ class _Header extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     // Header sizing matches backend/src/utils/sticker.js buildStickerSvg
-    // exactly: compact 108px tall, "QR 4 EMERGENCY" at Poppins Black
-    // 50pt with -1.5 tracking to fill ~90% of the 460px sticker width,
-    // and "SCAN TO CALL OWNER" at Poppins SemiBold 18pt with 2.6.
+    // exactly: compressed 92px tall, "QR 4 EMERGENCY" at Poppins Black
+    // 46pt with -1.3 tracking, "SCAN TO CALL OWNER" at Poppins SemiBold
+    // 17pt with 2.4 — both sized down slightly for the shorter band.
     return Container(
       width: double.infinity,
-      height: 108,
+      height: 92,
       decoration: const BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topCenter,
@@ -352,21 +352,21 @@ class _Header extends StatelessWidget {
                   'QR 4 EMERGENCY',
                   textAlign: TextAlign.center,
                   style: _poppins(
-                    size: 50,
+                    size: 46,
                     color: Colors.white,
-                    letterSpacing: -1.5,
+                    letterSpacing: -1.3,
                     height: 1.0,
                   ),
                 ),
-                const SizedBox(height: 10),
+                const SizedBox(height: 8),
                 Text(
                   'SCAN TO CALL OWNER',
                   textAlign: TextAlign.center,
                   style: _poppins(
-                    size: 18,
+                    size: 17,
                     weight: FontWeight.w600,
                     color: Colors.white,
-                    letterSpacing: 2.6,
+                    letterSpacing: 2.4,
                     height: 1.0,
                   ),
                 ),
@@ -585,7 +585,7 @@ class _Footer extends StatelessWidget {
           ),
         ),
       ),
-      padding: const EdgeInsets.fromLTRB(10, 14, 10, 14),
+      padding: const EdgeInsets.fromLTRB(10, 12, 10, 12),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: const [
@@ -602,7 +602,7 @@ class _Footer extends StatelessWidget {
               ),
             ],
           ),
-          SizedBox(height: 10),
+          SizedBox(height: 8),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
