@@ -585,7 +585,7 @@ class _Footer extends StatelessWidget {
           ),
         ),
       ),
-      padding: const EdgeInsets.fromLTRB(10, 10, 10, 10),
+      padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: const [
@@ -602,7 +602,7 @@ class _Footer extends StatelessWidget {
               ),
             ],
           ),
-          SizedBox(height: 6),
+          SizedBox(height: 2),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
