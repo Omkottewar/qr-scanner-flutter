@@ -396,41 +396,34 @@ class _Body extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(14, 14, 14, 12),
+      padding: const EdgeInsets.fromLTRB(14, 22, 14, 6),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          if (showVehicle) ...[
-            Text(
-              _formatVehicleNumber(vehicleNumber),
-              textAlign: TextAlign.center,
-              style: _mono(
-                size: 28,
-                color: _kRed,
-                letterSpacing: 1.5,
-                height: 1.0,
-              ),
-            ),
-            const SizedBox(height: 12),
-          ] else
-            const SizedBox(height: 4),
-
-          // QR + bold black L-brackets at each corner. Stack lets us
-          // paint the brackets over a fixed-size QR area. Sizes match
-          // backend's compact 260px frame with 224px QR image.
+          // ── L-bracket framed area — QR is inside the box, and the
+          //    vehicle number + "Extension Number" text sit ON the
+          //    top/bottom bracket lines. Each label has an opaque
+          //    white background so it visually breaks the black
+          //    bracket line running underneath. Matches backend's
+          //    text-on-line layout.
           SizedBox(
-            width: 260,
-            height: 260,
+            width: 300,
+            height: 296,
             child: Stack(
+              clipBehavior: Clip.none,
+              alignment: Alignment.center,
               children: [
-                Center(
+                // QR image centred with 18px margin from each bracket edge.
+                Positioned(
+                  top: 18,
+                  left: (300 - 260) / 2,
                   child: SizedBox(
-                    width: 224,
-                    height: 224,
+                    width: 260,
+                    height: 260,
                     child: QrImageView(
                       data: alertUrl,
                       version: QrVersions.auto,
-                      size: 280,
+                      size: 260,
                       backgroundColor: Colors.white,
                       eyeStyle: const QrEyeStyle(
                         eyeShape: QrEyeShape.square,
@@ -443,26 +436,60 @@ class _Body extends StatelessWidget {
                     ),
                   ),
                 ),
+                // Brackets on top of QR, under the text.
                 const Positioned.fill(
                   child: IgnorePointer(
                     child: CustomPaint(painter: _BracketPainter()),
+                  ),
+                ),
+                // Vehicle number sits ON the top bracket line — white
+                // bg breaks the black line where the text renders.
+                if (showVehicle)
+                  Positioned(
+                    top: -14,
+                    child: Container(
+                      color: Colors.white,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 4,
+                      ),
+                      child: Text(
+                        _formatVehicleNumber(vehicleNumber),
+                        style: _mono(
+                          size: 28,
+                          color: _kRed,
+                          letterSpacing: 1.5,
+                          height: 1.0,
+                        ),
+                      ),
+                    ),
+                  ),
+                // Extension Number sits ON the bottom bracket line.
+                // 20pt Poppins Black matches BE NAYAK so both labels
+                // read as a matched pair.
+                Positioned(
+                  bottom: -10,
+                  child: Container(
+                    color: Colors.white,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 4,
+                    ),
+                    child: Text(
+                      'Extension Number',
+                      style: _poppins(
+                        size: 20,
+                        letterSpacing: 0.2,
+                        height: 1.0,
+                      ),
+                    ),
                   ),
                 ),
               ],
             ),
           ),
 
-          const SizedBox(height: 22),
-          Text(
-            'Extension Number',
-            textAlign: TextAlign.center,
-            style: _poppins(
-              size: 22,
-              letterSpacing: 0.2,
-              height: 1.0,
-            ),
-          ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 20),
 
           // Bottom row: BE NAYAK + cross + pill + cross + BE NAYAK.
           // Sizes match backend/src/utils/sticker.js exactly (BE NAYAK
@@ -691,7 +718,7 @@ class _FooterBadge extends StatelessWidget {
 class _BracketPainter extends CustomPainter {
   const _BracketPainter();
 
-  static const double _arm = 36;
+  static const double _arm = 42;
   static const double _thick = 8;
 
   @override
