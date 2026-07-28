@@ -317,12 +317,12 @@ class _Header extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     // Header sizing matches backend/src/utils/sticker.js buildStickerSvg
-    // exactly: 138px tall, "QR 4 EMERGENCY" at Poppins Black 50pt with
-    // -1.5 tracking to fill ~90% of the 460px sticker width, and
-    // "SCAN TO CALL OWNER" at Poppins SemiBold 20pt with 3.0 tracking.
+    // exactly: compact 108px tall, "QR 4 EMERGENCY" at Poppins Black
+    // 50pt with -1.5 tracking to fill ~90% of the 460px sticker width,
+    // and "SCAN TO CALL OWNER" at Poppins SemiBold 18pt with 2.6.
     return Container(
       width: double.infinity,
-      height: 138,
+      height: 108,
       decoration: const BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topCenter,
@@ -363,10 +363,10 @@ class _Header extends StatelessWidget {
                   'SCAN TO CALL OWNER',
                   textAlign: TextAlign.center,
                   style: _poppins(
-                    size: 20,
+                    size: 18,
                     weight: FontWeight.w600,
                     color: Colors.white,
-                    letterSpacing: 3.0,
+                    letterSpacing: 2.6,
                     height: 1.0,
                   ),
                 ),
@@ -405,27 +405,28 @@ class _Body extends StatelessWidget {
               _formatVehicleNumber(vehicleNumber),
               textAlign: TextAlign.center,
               style: _mono(
-                size: 30,
+                size: 28,
                 color: _kRed,
                 letterSpacing: 1.5,
                 height: 1.0,
               ),
             ),
-            const SizedBox(height: 14),
+            const SizedBox(height: 12),
           ] else
             const SizedBox(height: 4),
 
           // QR + bold black L-brackets at each corner. Stack lets us
-          // paint the brackets over a fixed-size QR area.
+          // paint the brackets over a fixed-size QR area. Sizes match
+          // backend's compact 260px frame with 224px QR image.
           SizedBox(
-            width: 320,
-            height: 320,
+            width: 260,
+            height: 260,
             child: Stack(
               children: [
                 Center(
                   child: SizedBox(
-                    width: 280,
-                    height: 280,
+                    width: 224,
+                    height: 224,
                     child: QrImageView(
                       data: alertUrl,
                       version: QrVersions.auto,
@@ -451,25 +452,25 @@ class _Body extends StatelessWidget {
             ),
           ),
 
-          const SizedBox(height: 24), // +6 breathing room
+          const SizedBox(height: 22),
           Text(
             'Extension Number',
             textAlign: TextAlign.center,
             style: _poppins(
-              size: 17,
-              weight: FontWeight.w600,
-              letterSpacing: 0.3,
+              size: 22,
+              letterSpacing: 0.2,
               height: 1.0,
             ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 14),
 
           // Bottom row: BE NAYAK + cross + pill + cross + BE NAYAK.
-          // Sizes match backend/src/utils/sticker.js exactly (Poppins 900
-          // 16pt, cross 28px) so the in-app preview and the printed
-          // vinyl are visually identical.
+          // Sizes match backend/src/utils/sticker.js exactly (BE NAYAK
+          // Poppins 900 20pt, cross 30px, pill 150×50 with 28pt mono
+          // digits) so the in-app preview and the printed vinyl are
+          // visually identical.
           SizedBox(
-            height: 46,
+            height: 52,
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               crossAxisAlignment: CrossAxisAlignment.center,
@@ -477,18 +478,18 @@ class _Body extends StatelessWidget {
                 Text(
                   'BE NAYAK',
                   style: _poppins(
-                    size: 16,
+                    size: 20,
                     letterSpacing: 0.5,
                     height: 1.0,
                   ),
                 ),
-                const _MedicalCross(size: 28),
+                const _MedicalCross(size: 30),
                 _ExtensionPill(digits: digits),
-                const _MedicalCross(size: 28),
+                const _MedicalCross(size: 30),
                 Text(
                   'BE NAYAK',
                   style: _poppins(
-                    size: 16,
+                    size: 20,
                     letterSpacing: 0.5,
                     height: 1.0,
                   ),
@@ -513,17 +514,17 @@ class _ExtensionPill extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: 150,
-      height: 44,
+      height: 50,
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(10),
         border: Border.all(color: _kInk, width: 1.4),
       ),
       child: Center(
         child: Text(
           digits.isNotEmpty ? digits : '—',
           style: _mono(
-            size: 26,
+            size: 28,
             color: _kRed,
             letterSpacing: 1.5,
             height: 1.0,
@@ -557,7 +558,7 @@ class _Footer extends StatelessWidget {
           ),
         ),
       ),
-      padding: const EdgeInsets.fromLTRB(14, 18, 14, 18),
+      padding: const EdgeInsets.fromLTRB(10, 14, 10, 14),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: const [
@@ -574,7 +575,7 @@ class _Footer extends StatelessWidget {
               ),
             ],
           ),
-          SizedBox(height: 14),
+          SizedBox(height: 10),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
@@ -610,18 +611,19 @@ class _ContactChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // 13pt / 18px icon matches backend footerRow1. 14pt made the two
+    // chips collide in the middle (mail icon touched ".com" of the
+    // website URL); 13pt is the largest that leaves ~40px of centre
+    // breathing room at 460px sticker width.
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(icon, size: 14, color: Colors.white),
-        const SizedBox(width: 6),
+        Icon(icon, size: 18, color: Colors.white),
+        const SizedBox(width: 7),
         Text(
           label,
-          // 12pt keeps "support@qr4emergency.com" comfortably inside the
-          // sticker width alongside the website chip. Bumping this any
-          // higher pushes the closing ".com" past the right margin.
           style: _poppins(
-            size: 12,
+            size: 13,
             weight: FontWeight.w700,
             color: Colors.white,
           ),
@@ -689,7 +691,7 @@ class _FooterBadge extends StatelessWidget {
 class _BracketPainter extends CustomPainter {
   const _BracketPainter();
 
-  static const double _arm = 42;
+  static const double _arm = 36;
   static const double _thick = 8;
 
   @override
