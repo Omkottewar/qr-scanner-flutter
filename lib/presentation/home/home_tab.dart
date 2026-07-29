@@ -32,7 +32,6 @@ class HomeTab extends StatelessWidget {
                   const HomeCarousel(),
                   const SizedBox(height: 24),
                   _HeroCta(onCreate: onOpenQr),
-                  const PromoVideoCard(),
                   const _SectionHeader(
                     title: 'Why QR 4 Emergency?',
                     subtitle: 'Built for moments that matter',
@@ -123,6 +122,10 @@ class HomeTab extends StatelessWidget {
               ),
             ),
           ),
+          // Floating promo-video overlay — draggable, has play/mute
+          // controls, and can be dismissed. Sits on top of the scroll
+          // view but below any modal sheets that push above this Stack.
+          const PromoVideoCard(),
         ],
       ),
     );
