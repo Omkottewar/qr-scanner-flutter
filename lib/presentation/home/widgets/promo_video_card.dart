@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:video_player/video_player.dart';
 
 import '../../../core/theme/app_colors.dart';
@@ -10,6 +11,9 @@ import '../../widgets/scale_tap.dart';
 // GET /api/app/promo-video. If the endpoint returns `{ url: null }` the
 // section renders nothing at all — safe for local dev and unconfigured
 // deployments. Backed by video_player; play/pause overlay, tap-to-toggle.
+// Zepto/Blinkit-style dismiss: an X button hides the card and persists
+// the dismissal keyed on the video URL. When the admin uploads a new
+// video the URL changes, so the user sees the fresh ad again.
 class PromoVideoCard extends StatefulWidget {
   const PromoVideoCard({super.key});
 
@@ -17,8 +21,14 @@ class PromoVideoCard extends StatefulWidget {
   State<PromoVideoCard> createState() => _PromoVideoCardState();
 }
 
+// SharedPreferences key holding the URL of the last-dismissed promo.
+// One slot, not a list — a user who dismisses the current ad only
+// needs to remember THAT one; older dismissals aren't interesting.
+const String _kDismissedUrlKey = 'promo_video_dismissed_url';
+
 class _PromoVideoCardState extends State<PromoVideoCard> {
   bool _loading = true;
+  bool _dismissed = false;
   String? _url;
   String _title = '';
   String _subtitle = '';
@@ -49,6 +59,22 @@ class _PromoVideoCardState extends State<PromoVideoCard> {
         return;
       }
       final url = '${res['url']}';
+
+      // Check if the user previously dismissed THIS exact URL. If so,
+      // skip initialising the video player entirely — no bytes fetched,
+      // no controller allocated, nothing rendered.
+      final prefs = await SharedPreferences.getInstance();
+      final dismissedUrl = prefs.getString(_kDismissedUrlKey);
+      if (dismissedUrl == url) {
+        if (!mounted) return;
+        setState(() {
+          _loading = false;
+          _dismissed = true;
+          _url = url;
+        });
+        return;
+      }
+
       final title = res['title'] == null ? '' : '${res['title']}';
       final subtitle = res['subtitle'] == null ? '' : '${res['subtitle']}';
       // Dispose any previously-created controller before replacing it —
@@ -87,6 +113,26 @@ class _PromoVideoCardState extends State<PromoVideoCard> {
     }
   }
 
+  // Dismiss the ad card. Persists the current URL so it stays hidden
+  // across app restarts. Uploading a NEW video changes the URL and the
+  // user sees the fresh ad again — same UX as Zepto/Blinkit banners.
+  Future<void> _dismiss() async {
+    final url = _url;
+    if (url == null || url.isEmpty) return;
+    setState(() {
+      _dismissed = true;
+    });
+    _controller?.pause();
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_kDismissedUrlKey, url);
+    } catch (e) {
+      // Storage write failed — the card is still hidden for this
+      // session; the user can dismiss it again next time.
+      debugPrint('[promo-video] dismiss persist failed: $e');
+    }
+  }
+
   void _toggle() {
     final c = _controller;
     if (c == null || !_controllerReady) return;
@@ -104,6 +150,11 @@ class _PromoVideoCardState extends State<PromoVideoCard> {
   @override
   Widget build(BuildContext context) {
     if (_loading) {
+      return const SizedBox.shrink();
+    }
+    // Dismissed for this URL → render nothing until the admin uploads
+    // a new video (different URL) or the user clears app storage.
+    if (_dismissed) {
       return const SizedBox.shrink();
     }
     if (_url == null || _controller == null || !_controllerReady) {
@@ -196,6 +247,38 @@ class _PromoVideoCardState extends State<PromoVideoCard> {
                                 color: Color(0xFF7A3500),
                                 size: 36,
                               ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    // Dismiss (X) button — top-right, always visible on
+                    // top of the video and play/pause overlay so the
+                    // user can close the ad even while it's playing.
+                    Positioned(
+                      top: 8,
+                      right: 8,
+                      child: Material(
+                        color: Colors.transparent,
+                        child: InkResponse(
+                          radius: 22,
+                          onTap: _dismiss,
+                          child: Container(
+                            width: 30,
+                            height: 30,
+                            alignment: Alignment.center,
+                            decoration: BoxDecoration(
+                              color: Colors.black.withValues(alpha: 0.55),
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: Colors.white.withValues(alpha: 0.35),
+                                width: 1,
+                              ),
+                            ),
+                            child: const Icon(
+                              Icons.close_rounded,
+                              color: Colors.white,
+                              size: 18,
                             ),
                           ),
                         ),
