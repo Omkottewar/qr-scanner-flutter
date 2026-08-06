@@ -1,4 +1,4 @@
-package com.emergencyalert.emergency_alert
+package com.cpnetwork.qr4emergency
 
 import io.flutter.embedding.android.FlutterFragmentActivity
 

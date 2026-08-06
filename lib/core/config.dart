@@ -11,12 +11,12 @@ class AppConfig {
     if (fromEnv.isNotEmpty) return fromEnv.replaceAll(RegExp(r'/$'), '');
     if (kIsWeb) {
       // Flutter Web cannot use dart:io Platform; default API on same machine.
-      return 'https://qrbackend-production-f691.up.railway.app';
+      return 'https://api.qr4emergency.com';
     }
     if (defaultTargetPlatform == TargetPlatform.android) {
       // Android emulator: host loopback
-      return 'https://qrbackend-production-f691.up.railway.app';
+      return 'https://api.qr4emergency.com';
     }
-    return 'https://qrbackend-production-f691.up.railway.app';
+    return 'https://api.qr4emergency.com';
   }
 }

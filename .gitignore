@@ -43,3 +43,10 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Play Store upload keystore + password file. If either of these ends up
+# in git, ANYONE can push malicious updates masquerading as us on Play
+# Store. Never commit. Store the .jks and passwords in a password manager.
+/android/key.properties
+/android/*.jks
+/android/*.keystore

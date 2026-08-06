@@ -1,3 +1,6 @@
+import java.util.Properties
+import java.io.FileInputStream
+
 plugins {
     id("com.android.application")
     id("kotlin-android")
@@ -7,8 +10,18 @@ plugins {
     id("com.google.gms.google-services")
 }
 
+// Upload keystore for Play Store release builds. `android/key.properties`
+// is NOT committed (see .gitignore) — each developer / CI must have their
+// own copy. If the file is absent, release falls back to debug signing so
+// `flutter run --release` still works locally without the real keystore.
+val keystoreProperties = Properties()
+val keystorePropertiesFile = rootProject.file("key.properties")
+if (keystorePropertiesFile.exists()) {
+    keystoreProperties.load(FileInputStream(keystorePropertiesFile))
+}
+
 android {
-    namespace = "com.emergencyalert.emergency_alert"
+    namespace = "com.cpnetwork.qr4emergency"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
@@ -25,8 +38,7 @@ android {
     }
 
     defaultConfig {
-        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId = "com.emergencyalert.emergency_alert"
+        applicationId = "com.cpnetwork.qr4emergency"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion
@@ -35,11 +47,29 @@ android {
         versionName = flutter.versionName
     }
 
+    signingConfigs {
+        create("release") {
+            keyAlias = keystoreProperties["keyAlias"] as String?
+            keyPassword = keystoreProperties["keyPassword"] as String?
+            // Resolve relative to the `android/` folder (rootProject), so
+            // `storeFile=upload-keystore.jks` in key.properties finds the
+            // file at `android/upload-keystore.jks`. Without rootProject
+            // Gradle would look under `android/app/` which is confusing.
+            storeFile = (keystoreProperties["storeFile"] as String?)?.let { rootProject.file(it) }
+            storePassword = keystoreProperties["storePassword"] as String?
+        }
+    }
+
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.getByName("debug")
+            // Use the real upload keystore when key.properties is present
+            // (i.e., you're building for Play Store). Absent → fall back
+            // to debug so `flutter run --release` still works locally.
+            signingConfig = if (keystorePropertiesFile.exists()) {
+                signingConfigs.getByName("release")
+            } else {
+                signingConfigs.getByName("debug")
+            }
         }
     }
 }
