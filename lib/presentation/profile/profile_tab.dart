@@ -11,6 +11,8 @@ import '../../data/session_store.dart';
 import '../widgets/glass_card.dart';
 import '../widgets/notification_bell.dart';
 import '../widgets/scale_tap.dart';
+import '../widgets/qr_loader.dart';
+import '../widgets/shimmer_box.dart';
 import 'caller_activity_screen.dart';
 import 'legal_document_screen.dart';
 
@@ -257,9 +259,7 @@ class ProfileTabState extends State<ProfileTab> {
           const _AmbientBg(),
           SafeArea(
             child: _loading
-                ? const Center(
-                    child: CircularProgressIndicator(color: AppColors.primary),
-                  )
+                ? const PageSkeleton()
                 : _loadError != null
                     ? _ProfileLoadError(message: _loadError!, onRetry: _load)
                     : SingleChildScrollView(
@@ -299,10 +299,10 @@ class ProfileTabState extends State<ProfileTab> {
                               height: 40,
                               alignment: Alignment.center,
                               decoration: BoxDecoration(
-                                color: Colors.white.withValues(alpha: 0.04),
+                                color: AppColors.card,
                                 shape: BoxShape.circle,
                                 border: Border.all(
-                                  color: Colors.white.withValues(alpha: 0.10),
+                                  color: AppColors.hairline,
                                 ),
                               ),
                               child: const NotificationBell(compact: true),
@@ -435,7 +435,6 @@ class ProfileTabState extends State<ProfileTab> {
                               _Field(
                                 label: 'FULL NAME',
                                 controller: _name,
-                                hint: 'Your full name',
                               ),
                               const SizedBox(height: 14),
                               _Field(
@@ -448,21 +447,18 @@ class ProfileTabState extends State<ProfileTab> {
                               _Field(
                                 label: 'EMAIL',
                                 controller: _email,
-                                hint: 'you@example.com',
                                 keyboardType: TextInputType.emailAddress,
                               ),
                               const SizedBox(height: 14),
                               _Field(
                                 label: 'AGE',
                                 controller: _age,
-                                hint: 'Your age',
                                 keyboardType: TextInputType.number,
                               ),
                               const SizedBox(height: 14),
                               _Field(
                                 label: 'ADDRESS',
                                 controller: _address,
-                                hint: 'Full address',
                                 maxLines: 3,
                               ),
                               const SizedBox(height: 24),
@@ -493,10 +489,7 @@ class ProfileTabState extends State<ProfileTab> {
                                           ? const SizedBox(
                                               width: 22,
                                               height: 22,
-                                              child: CircularProgressIndicator(
-                                                strokeWidth: 2.4,
-                                                color: Colors.white,
-                                              ),
+                                              child: QrLoader(size: 20, color: Colors.white),
                                             )
                                           : const Row(
                                               mainAxisAlignment:
@@ -650,7 +643,7 @@ class ProfileTabState extends State<ProfileTab> {
           Container(
             margin: const EdgeInsets.symmetric(horizontal: 12),
             height: 1,
-            color: Colors.white.withValues(alpha: 0.08),
+            color: AppColors.hairline,
           ),
         );
       }
@@ -737,7 +730,6 @@ class _Field extends StatelessWidget {
   const _Field({
     required this.label,
     required this.controller,
-    this.hint,
     this.readOnly = false,
     this.locked = false,
     this.maxLines = 1,
@@ -746,7 +738,6 @@ class _Field extends StatelessWidget {
 
   final String label;
   final TextEditingController controller;
-  final String? hint;
   final bool readOnly;
   final bool locked;
   final int maxLines;
@@ -770,9 +761,9 @@ class _Field extends StatelessWidget {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
           decoration: BoxDecoration(
-            color: const Color(0xFF1A2236),
+            color: AppColors.inputFill,
             borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+            border: Border.all(color: AppColors.hairline),
           ),
           child: Row(
             children: [
@@ -788,18 +779,13 @@ class _Field extends StatelessWidget {
                     fontWeight: FontWeight.w600,
                     fontFeatures: [FontFeature.tabularFigures()],
                   ),
-                  decoration: InputDecoration(
-                    hintText: hint,
-                    hintStyle: const TextStyle(
-                      color: AppColors.textTertiary,
-                      fontWeight: FontWeight.w500,
-                    ),
+                  decoration: const InputDecoration(
                     border: InputBorder.none,
                     enabledBorder: InputBorder.none,
                     focusedBorder: InputBorder.none,
                     isDense: true,
                     contentPadding:
-                        const EdgeInsets.symmetric(vertical: 12, horizontal: 0),
+                        EdgeInsets.symmetric(vertical: 12, horizontal: 0),
                     filled: false,
                   ),
                 ),
@@ -848,7 +834,7 @@ class _BrandSwitch extends StatelessWidget {
         height: 24,
         decoration: BoxDecoration(
           gradient: value ? AppColors.brandGradient : null,
-          color: value ? null : Colors.white.withValues(alpha: 0.12),
+          color: value ? null : AppColors.hairline,
           borderRadius: BorderRadius.circular(999),
         ),
         child: Stack(
@@ -935,7 +921,7 @@ class _AmbientBg extends StatelessWidget {
     return Positioned.fill(
       child: Stack(
         children: [
-          const DecoratedBox(decoration: BoxDecoration(color: Color(0xFF06090F))),
+          const DecoratedBox(decoration: BoxDecoration(gradient: AppColors.backgroundGradient)),
           Positioned(
             top: -120,
             right: -120,

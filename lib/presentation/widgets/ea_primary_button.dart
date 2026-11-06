@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../core/theme/app_colors.dart';
+import 'qr_loader.dart';
 
 class EaPrimaryButton extends StatefulWidget {
   const EaPrimaryButton({
@@ -55,10 +56,7 @@ class _EaPrimaryButtonState extends State<EaPrimaryButton> {
                 ? const SizedBox(
                     width: 22,
                     height: 22,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2.4,
-                      color: Colors.white,
-                    ),
+                    child: QrLoader(size: 20, color: Colors.white),
                   )
                 : Row(
                     mainAxisAlignment: MainAxisAlignment.center,

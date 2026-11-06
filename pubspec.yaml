@@ -61,11 +61,11 @@ dev_dependencies:
 flutter_launcher_icons:
   android: "ic_launcher"
   ios: true
-  image_path: "assets/images/logo.png"
-  # Adaptive icon for Android 8+. White background so the orange circular
-  # badge stands out cleanly on any launcher mask (circle, squircle, square).
+  image_path: "assets/images/nayak.jpeg"
+  # Adaptive icon for Android 8+. White background so the sticker artwork
+  # lifts off cleanly on any launcher mask (circle, squircle, square).
   adaptive_icon_background: "#FFFFFF"
-  adaptive_icon_foreground: "assets/images/logo.png"
+  adaptive_icon_foreground: "assets/images/nayak.jpeg"
   remove_alpha_ios: true
   web:
     generate: false

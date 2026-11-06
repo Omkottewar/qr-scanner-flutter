@@ -11,6 +11,7 @@ import 'package:qr_flutter/qr_flutter.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../../widgets/ea_card.dart';
+import '../../widgets/qr_loader.dart';
 
 // Brand fonts kept in sync with backend/src/utils/sticker.js. Poppins
 // Black (900) for headings/BE NAYAK, Poppins SemiBold (600) for body
@@ -195,7 +196,7 @@ class _QrDetailCardState extends State<QrDetailCard> {
                       ? const SizedBox(
                           width: 16,
                           height: 16,
-                          child: CircularProgressIndicator(strokeWidth: 2),
+                          child: QrLoader(size: 24),
                         )
                       : const Icon(Icons.download_outlined),
                   label: Text(_saving ? 'Saving…' : 'Download'),
@@ -209,7 +210,7 @@ class _QrDetailCardState extends State<QrDetailCard> {
                       ? const SizedBox(
                           width: 16,
                           height: 16,
-                          child: CircularProgressIndicator(strokeWidth: 2),
+                          child: QrLoader(size: 24),
                         )
                       : const Icon(Icons.share_outlined),
                   label: Text(_sharing ? 'Sharing…' : 'Share'),
@@ -496,32 +497,48 @@ class _Body extends StatelessWidget {
           // Poppins 900 20pt, cross 30px, pill 150×50 with 28pt mono
           // digits) so the in-app preview and the printed vinyl are
           // visually identical.
+          //
+          // Wrapped in a FittedBox so that if the designed row width ever
+          // exceeds the sticker's internal band (e.g. a longer extension
+          // digit set, or a wider font metric), the row scales down to
+          // fit rather than clipping. Natural MainAxisSize.min with
+          // explicit gaps lets the FittedBox measure the row's intrinsic
+          // width honestly.
           SizedBox(
+            width: double.infinity,
             height: 52,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                Text(
-                  'BE NAYAK',
-                  style: _poppins(
-                    size: 20,
-                    letterSpacing: 0.5,
-                    height: 1.0,
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.center,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Text(
+                    'BE NAYAK',
+                    style: _poppins(
+                      size: 20,
+                      letterSpacing: 0.5,
+                      height: 1.0,
+                    ),
                   ),
-                ),
-                const _MedicalCross(size: 30),
-                _ExtensionPill(digits: digits),
-                const _MedicalCross(size: 30),
-                Text(
-                  'BE NAYAK',
-                  style: _poppins(
-                    size: 20,
-                    letterSpacing: 0.5,
-                    height: 1.0,
+                  const SizedBox(width: 14),
+                  const _MedicalCross(size: 30),
+                  const SizedBox(width: 10),
+                  _ExtensionPill(digits: digits),
+                  const SizedBox(width: 10),
+                  const _MedicalCross(size: 30),
+                  const SizedBox(width: 14),
+                  Text(
+                    'BE NAYAK',
+                    style: _poppins(
+                      size: 20,
+                      letterSpacing: 0.5,
+                      height: 1.0,
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ],
@@ -588,42 +605,67 @@ class _Footer extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
       child: Column(
         mainAxisSize: MainAxisSize.min,
-        children: const [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: [
-              _ContactChip(
-                icon: Icons.language_rounded,
-                label: 'www.qr4emergency.com',
+        children: [
+          // Row 1 — website + email chips. Wrapped in a FittedBox so the
+          // two chips scale down together if they exceed the band width,
+          // rather than clipping. Explicit 24px gap between the two for a
+          // predictable look at the designed size.
+          SizedBox(
+            width: double.infinity,
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.center,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: const [
+                  _ContactChip(
+                    icon: Icons.language_rounded,
+                    label: 'www.qr4emergency.com',
+                  ),
+                  SizedBox(width: 24),
+                  _ContactChip(
+                    icon: Icons.mail_outline_rounded,
+                    label: 'support@qr4emergency.com',
+                  ),
+                ],
               ),
-              _ContactChip(
-                icon: Icons.mail_outline_rounded,
-                label: 'support@qr4emergency.com',
-              ),
-            ],
+            ),
           ),
-          SizedBox(height: 2),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: [
-              _FooterBadge(
-                icon: Icons.warning_amber_rounded,
-                iconColor: Color(0xFFF4B400),
-                label: 'ACCIDENT',
+          const SizedBox(height: 2),
+          // Row 2 — ACCIDENT · TRACKING · NO PARKING. Previously this
+          // clipped "NO PARKING" on narrower devices because the three
+          // badges + two dividers overflowed the 460px base width. Now
+          // uses a FittedBox + natural-width row: at the design width it
+          // renders unchanged, at any narrower width the whole row scales
+          // down uniformly so nothing falls off the edge.
+          SizedBox(
+            width: double.infinity,
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.center,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: const [
+                  _FooterBadge(
+                    icon: Icons.warning_amber_rounded,
+                    iconColor: Color(0xFFF4B400),
+                    label: 'ACCIDENT',
+                  ),
+                  _FooterDivider(),
+                  _FooterBadge(
+                    icon: Icons.location_on_rounded,
+                    iconColor: Colors.white,
+                    label: 'TRACKING',
+                  ),
+                  _FooterDivider(),
+                  _FooterBadge(
+                    icon: Icons.local_parking_rounded,
+                    iconColor: Colors.white,
+                    label: 'NO PARKING',
+                  ),
+                ],
               ),
-              _FooterDivider(),
-              _FooterBadge(
-                icon: Icons.location_on_rounded,
-                iconColor: Colors.white,
-                label: 'TRACKING',
-              ),
-              _FooterDivider(),
-              _FooterBadge(
-                icon: Icons.local_parking_rounded,
-                iconColor: Colors.white,
-                label: 'NO PARKING',
-              ),
-            ],
+            ),
           ),
         ],
       ),
@@ -667,10 +709,11 @@ class _FooterDivider extends StatelessWidget {
   Widget build(BuildContext context) {
     // 30px tall so it visually bounds the taller icon+label pair used
     // in the reference art. Matches backend footerRow2 divider extent.
-    // Outer horizontal padding gives the adjacent icons breathing room —
-    // without it the (P) circle collided with the divider hairline.
+    // Horizontal padding kept tight (6 on each side) so the three
+    // badges fit the base width without the parent FittedBox having to
+    // kick in a scale-down on average-sized phones.
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 6),
       child: Container(
         width: 1,
         height: 30,

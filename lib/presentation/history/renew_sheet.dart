@@ -7,6 +7,7 @@ import '../../data/api_client.dart';
 import '../../data/payment_tracker.dart';
 import '../../data/pending_order_store.dart';
 import '../widgets/ea_primary_button.dart';
+import '../widgets/qr_loader.dart';
 
 // Modal bottom sheet that walks the user through a one-tap renewal.
 // Flow:
@@ -239,7 +240,7 @@ class _RenewSheetState extends State<RenewSheet> {
       ),
       child: Container(
         decoration: const BoxDecoration(
-          color: Color(0xFF0E1422),
+          color: AppColors.background,
           borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
         ),
         padding: const EdgeInsets.fromLTRB(24, 12, 24, 24),
@@ -253,7 +254,7 @@ class _RenewSheetState extends State<RenewSheet> {
                 height: 4,
                 margin: const EdgeInsets.only(bottom: 20),
                 decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.14),
+                  color: AppColors.hairline,
                   borderRadius: BorderRadius.circular(999),
                 ),
               ),
@@ -302,9 +303,9 @@ class _RenewSheetState extends State<RenewSheet> {
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.03),
+                color: AppColors.card,
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+                border: Border.all(color: AppColors.hairline),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -371,7 +372,7 @@ class _RenewSheetState extends State<RenewSheet> {
               const Center(
                 child: Padding(
                   padding: EdgeInsets.symmetric(vertical: 10),
-                  child: CircularProgressIndicator(color: AppColors.primary),
+                  child: QrLoader(size: 56),
                 ),
               )
             else

@@ -4,6 +4,7 @@ import '../../core/ist_time.dart';
 import '../../core/theme/app_colors.dart';
 import '../../data/api_client.dart';
 import '../widgets/glass_card.dart';
+import '../widgets/shimmer_box.dart';
 
 class CallerActivityScreen extends StatefulWidget {
   const CallerActivityScreen({super.key});
@@ -61,7 +62,7 @@ class _CallerActivityScreenState extends State<CallerActivityScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF06090F),
+      backgroundColor: AppColors.background,
       extendBodyBehindAppBar: true,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
@@ -89,9 +90,7 @@ class _CallerActivityScreenState extends State<CallerActivityScreen> {
 
   Widget _buildBody() {
     if (_loading && _items.isEmpty) {
-      return const Center(
-        child: CircularProgressIndicator(color: AppColors.primary),
-      );
+      return const PageSkeleton();
     }
     if (_error != null) {
       return ListView(
@@ -133,9 +132,9 @@ class _CallerActivityScreenState extends State<CallerActivityScreen> {
             alignment: Alignment.center,
             margin: const EdgeInsets.symmetric(horizontal: 100),
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.04),
+              color: AppColors.card,
               shape: BoxShape.circle,
-              border: Border.all(color: Colors.white.withValues(alpha: 0.10)),
+              border: Border.all(color: AppColors.hairline),
             ),
             child: const Icon(Icons.phone_disabled_rounded,
                 size: 42, color: AppColors.textTertiary),
@@ -300,7 +299,7 @@ class _ActivityCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 12),
-          Container(height: 1, color: Colors.white.withValues(alpha: 0.06)),
+          Container(height: 1, color: AppColors.hairline),
           const SizedBox(height: 12),
           Row(
             children: [

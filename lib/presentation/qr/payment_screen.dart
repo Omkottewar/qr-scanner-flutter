@@ -10,7 +10,7 @@ import '../../data/pending_order_store.dart';
 import '../../models/create_qr_draft.dart';
 import '../widgets/ea_card.dart';
 import '../widgets/ea_primary_button.dart';
-import '../widgets/ea_text_field.dart';
+import '../widgets/qr_loader.dart';
 import 'qr_flow_tab.dart';
 
 // Stages the loading overlay walks through after Razorpay's SDK
@@ -40,8 +40,6 @@ class PaymentScreen extends StatefulWidget {
 
 class _PaymentScreenState extends State<PaymentScreen> {
   Razorpay? _rz;
-  String _method = 'upi';
-  final _upiId = TextEditingController();
   bool _loading = false;
   String? _orderId;
   String? _keyId;
@@ -71,7 +69,6 @@ class _PaymentScreenState extends State<PaymentScreen> {
 
   @override
   void dispose() {
-    _upiId.dispose();
     _rz?.clear();
     // Best-effort dismiss so the dialog doesn't stay on the root
     // navigator after this screen is popped (would strand the user on
@@ -750,7 +747,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
                               ),
                             ),
                             const Text(
-                              '₹499',
+                              '₹549',
                               style: TextStyle(
                                 fontWeight: FontWeight.w700,
                                 fontFeatures: [FontFeature.tabularFigures()],
@@ -839,51 +836,51 @@ class _PaymentScreenState extends State<PaymentScreen> {
                     ),
                   ),
                   const SizedBox(height: 16),
+                  // Razorpay handles every payment method inside its own
+                  // secure checkout — UPI, cards, netbanking, wallets. We
+                  // don't need to collect any payment details here; we
+                  // just launch the checkout modal with the amount.
                   EaCard(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                    child: Row(
                       children: [
-                        Text(
-                          'Payment Method',
-                          style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w800),
-                        ),
-                        Text(
-                          'Powered by Razorpay',
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppColors.textSecondary),
-                        ),
-                        const SizedBox(height: 12),
-                        _PayOption(
-                          selected: _method == 'upi',
-                          title: 'UPI',
-                          subtitle: 'Pay using any UPI app.',
-                          icon: Icons.account_balance_wallet_outlined,
-                          iconColor: const Color(0xFF7C3AED),
-                          onTap: () => setState(() => _method = 'upi'),
-                        ),
-                        _PayOption(
-                          selected: _method == 'card',
-                          title: 'Credit/Debit Card',
-                          subtitle: 'Visa, Mastercard, RuPay.',
-                          icon: Icons.credit_card,
-                          iconColor: const Color(0xFF2563EB),
-                          onTap: () => setState(() => _method = 'card'),
-                        ),
-                        _PayOption(
-                          selected: _method == 'netbanking',
-                          title: 'Net Banking',
-                          subtitle: 'All major banks supported.',
-                          icon: Icons.account_balance_outlined,
-                          iconColor: const Color(0xFF16A34A),
-                          onTap: () => setState(() => _method = 'netbanking'),
-                        ),
-                        if (_method == 'upi') ...[
-                          const SizedBox(height: 12),
-                          EaTextField(
-                            controller: _upiId,
-                            label: 'UPI ID',
-                            hint: 'example@upi',
+                        Container(
+                          width: 44,
+                          height: 44,
+                          alignment: Alignment.center,
+                          decoration: BoxDecoration(
+                            color: AppColors.primary.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(12),
                           ),
-                        ],
+                          child: const Icon(
+                            Icons.shield_rounded,
+                            color: AppColors.primary,
+                            size: 22,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                'Secure Checkout',
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .titleSmall
+                                    ?.copyWith(fontWeight: FontWeight.w800),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                'UPI, Cards, Netbanking & Wallets — handled inside Razorpay',
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .bodySmall
+                                    ?.copyWith(color: AppColors.textSecondary),
+                              ),
+                            ],
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -906,61 +903,6 @@ class _PaymentScreenState extends State<PaymentScreen> {
   }
 }
 
-class _PayOption extends StatelessWidget {
-  const _PayOption({
-    required this.selected,
-    required this.title,
-    required this.subtitle,
-    required this.icon,
-    required this.iconColor,
-    required this.onTap,
-  });
-
-  final bool selected;
-  final String title;
-  final String subtitle;
-  final IconData icon;
-  final Color iconColor;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            border: Border.all(color: selected ? AppColors.primary : Colors.black12),
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Row(
-            children: [
-              Icon(icon, color: iconColor),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(title, style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700)),
-                    Text(subtitle, style: Theme.of(context).textTheme.bodySmall),
-                  ],
-                ),
-              ),
-              Icon(
-                selected ? Icons.radio_button_checked : Icons.radio_button_off,
-                color: selected ? AppColors.primary : AppColors.textSecondary,
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
 // Non-dismissible loading dialog shown during payment reconciliation +
 // QR creation. Listens to a ValueNotifier so the SAME dialog can update
 // its title/subtitle mid-flight (payment → QR) without pop+push flicker.
@@ -975,9 +917,9 @@ class _ConfirmingOverlay extends StatelessWidget {
         margin: const EdgeInsets.symmetric(horizontal: 40),
         padding: const EdgeInsets.fromLTRB(28, 32, 28, 28),
         decoration: BoxDecoration(
-          color: const Color(0xFF161F33),
+          color: AppColors.card,
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+          border: Border.all(color: AppColors.hairline),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withValues(alpha: 0.4),
@@ -1010,12 +952,9 @@ class _ConfirmingOverlay extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(
-                    width: 44,
-                    height: 44,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 3.5,
-                      color: AppColors.primary,
-                    ),
+                    width: 72,
+                    height: 72,
+                    child: QrLoader(size: 72),
                   ),
                 ],
               ),
@@ -1041,7 +980,7 @@ class _ConfirmingOverlay extends StatelessWidget {
                         title,
                         textAlign: TextAlign.center,
                         style: const TextStyle(
-                          color: Color(0xFFF8FAFC),
+                          color: AppColors.textPrimary,
                           fontSize: 17,
                           fontWeight: FontWeight.w800,
                           height: 1.3,
@@ -1052,7 +991,7 @@ class _ConfirmingOverlay extends StatelessWidget {
                         subtitle,
                         textAlign: TextAlign.center,
                         style: const TextStyle(
-                          color: Color(0xFF94A3B8),
+                          color: AppColors.textSecondary,
                           fontSize: 13,
                           height: 1.5,
                         ),
@@ -1076,7 +1015,7 @@ class _ConfirmingOverlay extends StatelessWidget {
                   decoration: BoxDecoration(
                     color: active
                         ? AppColors.primary
-                        : Colors.white.withValues(alpha: 0.18),
+                        : AppColors.hairline,
                     borderRadius: BorderRadius.circular(4),
                   ),
                 );

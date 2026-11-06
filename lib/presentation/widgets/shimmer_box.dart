@@ -25,8 +25,8 @@ class _ShimmerBoxState extends State<ShimmerBox>
     with SingleTickerProviderStateMixin {
   late final AnimationController _c;
 
-  static const _base = Color(0xFF1A2236);
-  static const _highlight = Color(0xFF243049);
+  static const _base = Color(0xFFE9EBF2);
+  static const _highlight = Color(0xFFF5F6FA);
 
   @override
   void initState() {
@@ -70,6 +70,31 @@ class _ShimmerBoxState extends State<ShimmerBox>
   }
 }
 
+/// Universal page skeleton — a scrollable list of card-shaped shimmer
+/// rows. Used across My QR, Call History and Profile so every loading
+/// state in the app reads the same.
+class PageSkeleton extends StatelessWidget {
+  const PageSkeleton({
+    super.key,
+    this.count = 5,
+    this.padding = const EdgeInsets.fromLTRB(24, 12, 24, 128),
+  });
+
+  final int count;
+  final EdgeInsets padding;
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView.separated(
+      physics: const AlwaysScrollableScrollPhysics(),
+      padding: padding,
+      itemCount: count,
+      separatorBuilder: (_, _) => const SizedBox(height: 12),
+      itemBuilder: (_, _) => const QrCardSkeleton(),
+    );
+  }
+}
+
 /// Standard QR-card skeleton — matches the outer shape of a real QR
 /// history card so the layout doesn't jump when the data arrives.
 class QrCardSkeleton extends StatelessWidget {
@@ -80,9 +105,9 @@ class QrCardSkeleton extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFF0F1626),
+        color: Colors.white,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
+        border: Border.all(color: Colors.black.withValues(alpha: 0.06)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

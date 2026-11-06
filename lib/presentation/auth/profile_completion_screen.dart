@@ -155,7 +155,6 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
                   // attaching this profile to.
                   EaTextField(
                     label: 'Mobile Number',
-                    hint: widget.mobile,
                     controller: TextEditingController(text: widget.mobile),
                     prefixIcon: Icons.phone_android_rounded,
                     readOnly: true,
@@ -166,7 +165,6 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
                   EaTextField(
                     controller: _name,
                     label: 'Full Name *',
-                    hint: 'Enter your full name',
                     prefixIcon: Icons.person_outline_rounded,
                     textCapitalization: TextCapitalization.words,
                     labelStyle: _fieldLabelStyle(context),
@@ -181,7 +179,6 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
                   EaTextField(
                     controller: _email,
                     label: 'Email (optional)',
-                    hint: 'you@example.com',
                     prefixIcon: Icons.email_outlined,
                     keyboardType: TextInputType.emailAddress,
                     labelStyle: _fieldLabelStyle(context),

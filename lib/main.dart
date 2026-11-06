@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'core/theme/app_colors.dart';
 import 'core/theme/app_theme.dart';
 import 'data/api_client.dart';
 import 'data/pending_order_store.dart';
@@ -10,6 +9,7 @@ import 'data/session_store.dart';
 import 'presentation/auth/biometric_lock_screen.dart';
 import 'presentation/auth/login_screen.dart';
 import 'presentation/shell/main_shell.dart';
+import 'presentation/widgets/qr_loader.dart';
 import 'presentation/widgets/update_required_screen.dart';
 
 void main() {
@@ -33,8 +33,13 @@ class _EmergencyAlertAppState extends State<EmergencyAlertApp> {
   bool _loggedIn = false;
   bool _biometricLocked = false;
   bool _updateRequired = false;
+  // Soft-update signal: there's a newer version on Play Store but the
+  // client is still within the supported window. MainShell/HomeTab turn
+  // this into a dismissible banner on the home surface.
+  bool _updateAvailable = false;
   String _updateMessage = '';
   String _playStoreUrl = '';
+  String _latestVersion = '';
 
   @override
   void initState() {
@@ -58,65 +63,91 @@ class _EmergencyAlertAppState extends State<EmergencyAlertApp> {
 
   Future<void> _boot() async {
     const appVersion = '1.0.5'; // Current mobile app version
-    try {
-      // Execute version check on startup
-      final res = await ApiClient.instance
-          .get('/api/app/version-check?version=$appVersion', auth: false)
-          .timeout(const Duration(seconds: 5));
-      if (res is Map && res['forceUpdate'] == true) {
-        if (mounted) {
-          setState(() {
-            _updateRequired = true;
-            _updateMessage = res['updateMessage']?.toString() ?? 'Please update app to continue';
-            _playStoreUrl = res['playStoreUrl']?.toString() ?? '';
-            _loading = false;
-          });
-        }
-        return;
-      }
-    } catch (e) {
+
+    // Fire version-check, token read, biometric pref read, and (if
+    // we had a token on disk) session validation IN PARALLEL. Previously
+    // these were sequential and the boot screen could sit for 11+ seconds
+    // on a bad network because each timeout waited on the previous one.
+    final versionFuture = ApiClient.instance
+        .get('/api/app/version-check?version=$appVersion', auth: false)
+        .timeout(const Duration(seconds: 3))
+        .catchError((Object e) {
       debugPrint('Startup version check failed/skipped: $e');
-    }
+      return null;
+    });
 
-    final t = await SessionStore.getToken();
-    bool loggedIn = t != null && t.isNotEmpty;
+    final token = await SessionStore.getToken();
+    final hasToken = token != null && token.isNotEmpty;
 
-    // Validate the token with the server. If it's expired or revoked the
-    // 401-handler in ApiClient already cleared the session; we just need to
-    // catch the resulting ApiException so the user lands on login cleanly.
-    if (loggedIn) {
-      try {
-        await ApiClient.instance
-            .get('/auth/me')
-            .timeout(const Duration(seconds: 6));
-      } on ApiException catch (e) {
-        debugPrint('Session validation failed: ${e.message}');
-        loggedIn = false;
-      } catch (e) {
-        // Network error — let the user reach the app with cached session
-        // rather than forcing them to login when offline.
+    final prefsFuture = SharedPreferences.getInstance()
+        .then((p) => p.getBool('fingerprint_login_enabled') ?? false)
+        .catchError((Object e) {
+      debugPrint('Could not read biometric pref: $e');
+      return false;
+    });
+
+    Future<bool> validateFuture;
+    if (hasToken) {
+      validateFuture = ApiClient.instance
+          .get('/auth/me')
+          .timeout(const Duration(seconds: 3))
+          .then((_) => true)
+          .catchError((Object e) {
+        if (e is ApiException) {
+          debugPrint('Session validation failed: ${e.message}');
+          return false; // 401 → force login
+        }
+        // Network error — keep the cached session so offline users can
+        // still open the app.
         debugPrint('Session validation skipped (network): $e');
-      }
+        return true;
+      });
+    } else {
+      validateFuture = Future.value(false);
     }
 
-    // Whether the session needs a biometric unlock before reaching the app.
-    // The actual prompt happens in BiometricLockScreen — keeping it out of
-    // _boot() lets the user retry/escape without re-running the whole boot.
-    bool needsBiometric = false;
-    if (loggedIn) {
-      try {
-        final prefs = await SharedPreferences.getInstance();
-        needsBiometric = prefs.getBool('fingerprint_login_enabled') ?? false;
-      } catch (e) {
-        debugPrint('Could not read biometric pref: $e');
+    final results = await Future.wait<Object?>([
+      versionFuture,
+      validateFuture,
+      prefsFuture,
+    ]);
+
+    final versionRes = results[0];
+    final loggedIn = results[1] as bool;
+    final biometricEnabled = results[2] as bool;
+
+    if (versionRes is Map && versionRes['forceUpdate'] == true) {
+      if (mounted) {
+        setState(() {
+          _updateRequired = true;
+          _updateMessage = versionRes['updateMessage']?.toString() ??
+              'Please update app to continue';
+          _playStoreUrl = versionRes['playStoreUrl']?.toString() ?? '';
+          _loading = false;
+        });
       }
+      return;
     }
+
+    // Soft update: there's a newer version but we're still supported. Hold
+    // the signal so MainShell can show a dismissible banner on home.
+    final Map? versionMap = versionRes is Map ? versionRes : null;
+    final updateAvailable = versionMap?['updateAvailable'] == true;
+
+    final needsBiometric = loggedIn && biometricEnabled;
 
     if (!mounted) return;
     setState(() {
       _loading = false;
       _loggedIn = loggedIn;
       _biometricLocked = needsBiometric;
+      _updateAvailable = updateAvailable;
+      if (updateAvailable && versionMap != null) {
+        _updateMessage = versionMap['updateMessage']?.toString() ??
+            'A new version is available.';
+        _playStoreUrl = versionMap['playStoreUrl']?.toString() ?? '';
+        _latestVersion = versionMap['latestVersion']?.toString() ?? '';
+      }
     });
 
     // Register for push once we're confident the session is valid. The
@@ -211,7 +242,7 @@ class _EmergencyAlertAppState extends State<EmergencyAlertApp> {
       debugShowCheckedModeBanner: false,
       home: _loading
           ? const Scaffold(
-              body: Center(child: CircularProgressIndicator(color: AppColors.primary)),
+              body: QrBootLoader(status: 'Securing your privacy'),
             )
           : !_loggedIn
               ? LoginScreen(
@@ -237,6 +268,10 @@ class _EmergencyAlertAppState extends State<EmergencyAlertApp> {
                         PushService.instance.unregister();
                         setState(() => _loggedIn = false);
                       },
+                      updateAvailable: _updateAvailable,
+                      updateLatestVersion: _latestVersion,
+                      updateMessage: _updateMessage,
+                      updatePlayStoreUrl: _playStoreUrl,
                     ),
     );
   }

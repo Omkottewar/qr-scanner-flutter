@@ -7,6 +7,7 @@ import '../../core/theme/app_colors.dart';
 import '../../data/api_client.dart';
 import '../widgets/glass_card.dart';
 import '../widgets/scale_tap.dart';
+import '../widgets/shimmer_box.dart';
 
 /// The "Alerts" sub-tab under History. Shows every tap a bystander has made
 /// on the alert page for any QR the user owns, with optional GPS location.
@@ -108,15 +109,7 @@ class _AlertsTabState extends State<AlertsTab> {
 
   Widget _buildBody() {
     if (_loading && _items.isEmpty) {
-      return ListView(
-        physics: const AlwaysScrollableScrollPhysics(),
-        children: const [
-          SizedBox(height: 140),
-          Center(
-            child: CircularProgressIndicator(color: AppColors.primary),
-          ),
-        ],
-      );
+      return const PageSkeleton();
     }
     if (_error != null) {
       return ListView(
@@ -158,9 +151,9 @@ class _AlertsTabState extends State<AlertsTab> {
             alignment: Alignment.center,
             margin: const EdgeInsets.symmetric(horizontal: 100),
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.04),
+              color: AppColors.card,
               shape: BoxShape.circle,
-              border: Border.all(color: Colors.white.withValues(alpha: 0.10)),
+              border: Border.all(color: AppColors.hairline),
             ),
             child: const Icon(Icons.location_off_rounded,
                 size: 42, color: AppColors.textTertiary),
@@ -307,9 +300,9 @@ class _AlertCard extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                 decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.05),
+                  color: AppColors.card,
                   borderRadius: BorderRadius.circular(999),
-                  border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+                  border: Border.all(color: AppColors.hairline),
                 ),
                 child: Text(
                   relativeTime(createdAt),
@@ -323,7 +316,7 @@ class _AlertCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 12),
-          Container(height: 1, color: Colors.white.withValues(alpha: 0.06)),
+          Container(height: 1, color: AppColors.hairline),
           const SizedBox(height: 12),
           if (hasLocation) ...[
             Row(

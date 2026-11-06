@@ -5,6 +5,7 @@ import 'package:local_auth/local_auth.dart';
 import '../../core/theme/app_colors.dart';
 import '../widgets/login_gradient_background.dart';
 import '../widgets/scale_tap.dart';
+import '../widgets/qr_loader.dart';
 
 /// Shown on cold start when the user has fingerprint login enabled.
 /// Auto-prompts on mount; on dismissal/failure the user can retry or escape
@@ -191,10 +192,7 @@ class _BiometricLockScreenState extends State<BiometricLockScreen> {
                         ? const SizedBox(
                             width: 22,
                             height: 22,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2.4,
-                              color: Colors.white,
-                            ),
+                            child: QrLoader(size: 24, color: Colors.white),
                           )
                         : const Row(
                             mainAxisAlignment: MainAxisAlignment.center,

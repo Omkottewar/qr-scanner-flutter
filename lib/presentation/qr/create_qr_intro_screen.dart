@@ -93,14 +93,14 @@ class CreateQrIntroScreen extends StatelessWidget {
                     color: Color(0xFFFF7A00),
                     title: 'Vehicle & contacts',
                     desc:
-                        'Add your vehicle and up to 4 emergency contacts.',
+                        'Add your vehicle and up to 3 emergency contacts.',
                   ),
                   const SizedBox(height: 12),
                   const _StepRow(
                     n: 2,
                     color: Color(0xFFFFB547),
                     title: 'Secure payment',
-                    desc: '₹549 one-time — no annual renewal.',
+                    desc: '₹599 one-time — no annual renewal.',
                   ),
                   const SizedBox(height: 12),
                   const _StepRow(
@@ -164,7 +164,7 @@ class _AmbientBg extends StatelessWidget {
       child: Stack(
         children: [
           const DecoratedBox(
-            decoration: BoxDecoration(color: Color(0xFF06090F)),
+            decoration: BoxDecoration(color: AppColors.background),
           ),
           Positioned(
             top: -120,
@@ -281,9 +281,9 @@ class _TopBar extends StatelessWidget {
       height: 40,
       alignment: Alignment.center,
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.04),
+        color: AppColors.card,
         shape: BoxShape.circle,
-        border: Border.all(color: Colors.white.withValues(alpha: 0.10)),
+        border: Border.all(color: AppColors.hairline),
       ),
       child: child,
     );
@@ -393,7 +393,7 @@ class _CreateQrSliderState extends State<_CreateQrSlider> {
                 gradient: selected ? AppColors.brandGradient : null,
                 color: selected
                     ? null
-                    : Colors.white.withValues(alpha: 0.18),
+                    : AppColors.hairline,
                 borderRadius: BorderRadius.circular(4),
               ),
             );

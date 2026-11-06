@@ -8,11 +8,14 @@ import '../qr/qr_view_screen.dart';
 import '../widgets/glass_card.dart';
 import '../widgets/scale_tap.dart';
 import '../widgets/shimmer_box.dart';
+import '../widgets/qr_loader.dart';
 import '../../data/session_store.dart';
-import 'call_history_tab.dart';
 import 'edit_family_screen.dart';
 import 'renew_sheet.dart';
 
+/// "My QR" page — list of QR codes the user has created. Standalone
+/// screen; the previous composite History tab (with a Call Logs sub-tab)
+/// was split so this page has no visible link to call history.
 class HistoryTab extends StatefulWidget {
   const HistoryTab({super.key});
 
@@ -20,20 +23,15 @@ class HistoryTab extends StatefulWidget {
   State<HistoryTab> createState() => HistoryTabState();
 }
 
-// Exposed publicly so MainShell can call refresh() via a GlobalKey when
-// the user re-focuses the History tab — IndexedStack keeps the widget
-// mounted, so initState() only fires once and stale data hangs around
-// without an explicit re-fetch.
+// State is public so MainShell can call refresh() via a GlobalKey when
+// the user re-focuses the tab — IndexedStack keeps the widget mounted,
+// so initState() only fires once and stale data hangs around without an
+// explicit re-fetch.
 class HistoryTabState extends State<HistoryTab> {
   bool _loading = true;
   String? _error;
   List<dynamic> _items = [];
   final Set<int> _deletingIds = <int>{};
-  // Attached to the CallHistoryTab child so we can trigger its refresh
-  // in lockstep with the QR list — otherwise a user sitting on the
-  // "Call Logs" sub-tab keeps seeing stale rows after a real call.
-  final GlobalKey<CallHistoryTabState> _callsKey =
-      GlobalKey<CallHistoryTabState>();
 
   @override
   void initState() {
@@ -41,13 +39,8 @@ class HistoryTabState extends State<HistoryTab> {
     _load();
   }
 
-  /// Public re-fetch — called by MainShell on tab focus. Refreshes both
-  /// the QR list AND the Call Logs sub-tab so whichever sub-tab the user
-  /// is looking at is up-to-date.
-  Future<void> refresh() async {
-    _callsKey.currentState?.refresh();
-    await _load();
-  }
+  /// Public re-fetch — called by MainShell on tab focus.
+  Future<void> refresh() => _load();
 
   Future<void> _load() async {
     if (!mounted) return;
@@ -227,44 +220,31 @@ class HistoryTabState extends State<HistoryTab> {
         children: [
           const _AmbientBg(),
           SafeArea(
-            child: DefaultTabController(
-              length: 2,
-              child: Column(
-                children: [
-                  const Padding(
-                    padding: EdgeInsets.fromLTRB(24, 16, 24, 4),
-                    child: Align(
-                      alignment: Alignment.centerLeft,
-                      child: _Heading(),
-                    ),
+            child: Column(
+              children: [
+                const Padding(
+                  padding: EdgeInsets.fromLTRB(24, 16, 24, 12),
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: _Heading(),
                   ),
-                  const Padding(
-                    padding: EdgeInsets.fromLTRB(24, 20, 24, 8),
-                    child: _GlassTabBar(),
+                ),
+                Expanded(
+                  child: _QrTab(
+                    loading: _loading,
+                    error: _error,
+                    items: _items,
+                    activeCount: _activeCount,
+                    deletingIds: _deletingIds,
+                    onRetry: _load,
+                    onRefresh: _load,
+                    onEdit: _openEdit,
+                    onView: _openView,
+                    onDelete: _confirmDelete,
+                    onRenew: _openRenew,
                   ),
-                  Expanded(
-                    child: TabBarView(
-                      physics: const BouncingScrollPhysics(),
-                      children: [
-                        _QrTab(
-                          loading: _loading,
-                          error: _error,
-                          items: _items,
-                          activeCount: _activeCount,
-                          deletingIds: _deletingIds,
-                          onRetry: _load,
-                          onRefresh: _load,
-                          onEdit: _openEdit,
-                          onView: _openView,
-                          onDelete: _confirmDelete,
-                          onRenew: _openRenew,
-                        ),
-                        CallHistoryTab(key: _callsKey),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
         ],
@@ -280,7 +260,7 @@ class _AmbientBg extends StatelessWidget {
     return Positioned.fill(
       child: Stack(
         children: [
-          const DecoratedBox(decoration: BoxDecoration(color: Color(0xFF06090F))),
+          const DecoratedBox(decoration: BoxDecoration(gradient: AppColors.backgroundGradient)),
           Positioned(
             top: -120,
             right: -120,
@@ -329,13 +309,14 @@ class _AmbientBg extends StatelessWidget {
 
 class _Heading extends StatelessWidget {
   const _Heading();
+
   @override
   Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: const [
         Text(
-          'History',
+          'My QR',
           style: TextStyle(
             color: AppColors.textPrimary,
             fontSize: 28,
@@ -345,59 +326,13 @@ class _Heading extends StatelessWidget {
         ),
         SizedBox(height: 2),
         Text(
-          'Track your QR codes and emergency calls',
+          'Your purchased QR codes',
           style: TextStyle(
             color: AppColors.textSecondary,
             fontSize: 13,
           ),
         ),
       ],
-    );
-  }
-}
-
-class _GlassTabBar extends StatelessWidget {
-  const _GlassTabBar();
-
-  @override
-  Widget build(BuildContext context) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(999),
-      child: Container(
-        padding: const EdgeInsets.all(4),
-        decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.04),
-          borderRadius: BorderRadius.circular(999),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.10)),
-        ),
-        child: TabBar(
-          indicator: BoxDecoration(
-            gradient: AppColors.brandGradient,
-            borderRadius: BorderRadius.circular(999),
-            boxShadow: [
-              BoxShadow(
-                color: AppColors.primary.withValues(alpha: 0.6),
-                blurRadius: 24,
-                spreadRadius: -8,
-                offset: const Offset(0, 10),
-              ),
-            ],
-          ),
-          indicatorSize: TabBarIndicatorSize.tab,
-          dividerColor: Colors.transparent,
-          labelColor: Colors.white,
-          unselectedLabelColor: const Color(0xFF94A3B8),
-          labelPadding: const EdgeInsets.symmetric(vertical: 10),
-          labelStyle: const TextStyle(
-            fontSize: 12.5,
-            fontWeight: FontWeight.w800,
-          ),
-          tabs: const [
-            Tab(text: 'QR Codes'),
-            Tab(text: 'Call Logs'),
-          ],
-        ),
-      ),
     );
   }
 }
@@ -435,19 +370,7 @@ class _QrTab extends StatelessWidget {
       onRefresh: onRefresh,
       color: AppColors.primary,
       child: loading
-          ? ListView(
-              physics: const AlwaysScrollableScrollPhysics(),
-              padding: const EdgeInsets.fromLTRB(24, 12, 24, 128),
-              children: const [
-                // Three placeholder cards so the loading state matches
-                // the shape of the real list instead of a lone spinner.
-                QrCardSkeleton(),
-                SizedBox(height: 12),
-                QrCardSkeleton(),
-                SizedBox(height: 12),
-                QrCardSkeleton(),
-              ],
-            )
+          ? const PageSkeleton()
           : error != null
               ? _ErrorState(message: error!, onRetry: onRetry)
               : items.isEmpty
@@ -715,10 +638,7 @@ class _QrCard extends StatelessWidget {
                       ? const SizedBox(
                           width: 16,
                           height: 16,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: Colors.redAccent,
-                          ),
+                          child: QrLoader(size: 20, color: Colors.redAccent),
                         )
                       : const Icon(Icons.delete_outline_rounded,
                           color: Colors.redAccent, size: 20),
@@ -855,9 +775,9 @@ class _MetaTile extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.03),
+        color: AppColors.cardHigh,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
+        border: Border.all(color: AppColors.hairline),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -985,7 +905,7 @@ class _Hairline extends StatelessWidget {
   const _Hairline();
   @override
   Widget build(BuildContext context) {
-    return Container(height: 1, color: Colors.white.withValues(alpha: 0.08));
+    return Container(height: 1, color: AppColors.hairline);
   }
 }
 
@@ -1005,9 +925,9 @@ class _EmptyState extends StatelessWidget {
           alignment: Alignment.center,
           margin: const EdgeInsets.symmetric(horizontal: 100),
           decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.04),
+            color: AppColors.card,
             shape: BoxShape.circle,
-            border: Border.all(color: Colors.white.withValues(alpha: 0.10)),
+            border: Border.all(color: AppColors.hairline),
           ),
           child: const Icon(Icons.qr_code_scanner_rounded,
               size: 42, color: AppColors.textTertiary),

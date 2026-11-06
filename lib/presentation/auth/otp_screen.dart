@@ -178,10 +178,10 @@ class _OtpScreenState extends State<OtpScreen> {
                   height: 40,
                   alignment: Alignment.center,
                   decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.04),
+                    color: AppColors.card,
                     shape: BoxShape.circle,
                     border:
-                        Border.all(color: Colors.white.withValues(alpha: 0.10)),
+                        Border.all(color: AppColors.hairline),
                   ),
                   child: const Icon(Icons.arrow_back_rounded,
                       color: AppColors.textPrimary, size: 18),
@@ -339,12 +339,12 @@ class _OtpBox extends StatelessWidget {
       width: 56,
       height: 64,
       decoration: BoxDecoration(
-        color: const Color(0xFF1A2236),
+        color: AppColors.inputFill,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
           color: filled
               ? AppColors.primary
-              : Colors.white.withValues(alpha: 0.10),
+              : AppColors.hairline,
           width: filled ? 1.5 : 1,
         ),
         boxShadow: filled

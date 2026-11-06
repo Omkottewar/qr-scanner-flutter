@@ -18,28 +18,19 @@ class LoginGradientBackground extends StatelessWidget {
           const Positioned.fill(
             child: DecoratedBox(
               decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    Color(0xFF131A2B),
-                    Color(0xFF0A0F1D),
-                    Color(0xFF06090F),
-                  ],
-                  stops: [0, 0.5, 1],
-                ),
+                gradient: AppColors.backgroundGradient,
               ),
             ),
           ),
           Positioned(
             top: -80,
             right: -60,
-            child: GlowOrb(color: AppColors.primary.withValues(alpha: 0.55), size: 280),
+            child: GlowOrb(color: AppColors.primary.withValues(alpha: 0.18), size: 280),
           ),
           Positioned(
             bottom: -100,
             left: -80,
-            child: GlowOrb(color: AppColors.violet.withValues(alpha: 0.32), size: 320),
+            child: GlowOrb(color: AppColors.amber.withValues(alpha: 0.14), size: 320),
           ),
           SafeArea(child: child),
         ],

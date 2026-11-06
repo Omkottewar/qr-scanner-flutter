@@ -9,6 +9,7 @@ import '../widgets/ea_primary_button.dart';
 import '../widgets/ea_text_field.dart';
 import '../widgets/info_banner.dart';
 import '../widgets/scale_tap.dart';
+import '../widgets/qr_loader.dart';
 
 class EditFamilyScreen extends StatefulWidget {
   const EditFamilyScreen({
@@ -89,7 +90,7 @@ class _EditFamilyScreenState extends State<EditFamilyScreen> {
   }
 
   void _addContact() {
-    if (_contacts.length >= 4) return;
+    if (_contacts.length >= 3) return;
     HapticFeedback.lightImpact();
     setState(() => _contacts.add(_ContactRow()));
   }
@@ -159,7 +160,7 @@ class _EditFamilyScreenState extends State<EditFamilyScreen> {
                 Expanded(
                   child: _loading
                       ? const Center(
-                          child: CircularProgressIndicator(color: AppColors.primary),
+                          child: QrLoader(size: 20),
                         )
                       : _error != null
                           ? _ErrorState(message: _error!, onRetry: _load)
@@ -247,7 +248,6 @@ class _EditFamilyScreenState extends State<EditFamilyScreen> {
                                         EaTextField(
                                           controller: _ownerPhone,
                                           label: 'Phone Number',
-                                          hint: '10-digit mobile',
                                           keyboardType: TextInputType.phone,
                                           prefixIcon: Icons.lock_outline_rounded,
                                           readOnly: true,
@@ -274,12 +274,12 @@ class _EditFamilyScreenState extends State<EditFamilyScreen> {
                                       ),
                                     );
                                   }),
-                                  if (_contacts.length < 4)
+                                  if (_contacts.length < 3)
                                     _AddContactButton(onTap: _addContact),
                                   const SizedBox(height: 14),
                                   Center(
                                     child: Text(
-                                      '${_contacts.length}/4 contacts',
+                                      '${_contacts.length}/3 contacts',
                                       style: const TextStyle(
                                         color: AppColors.textTertiary,
                                         fontSize: 12,
@@ -333,14 +333,7 @@ class _AmbientBg extends StatelessWidget {
       child: Stack(
         children: [
           const DecoratedBox(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [Color(0xFF101729), Color(0xFF06090F)],
-                stops: [0, 0.45],
-              ),
-            ),
+            decoration: BoxDecoration(gradient: AppColors.backgroundGradient),
           ),
           Positioned(
             top: -80,
@@ -524,7 +517,6 @@ class _ContactCard extends StatelessWidget {
           EaTextField(
             controller: contact.name,
             label: 'Name *',
-            hint: 'Contact name',
             prefixIcon: Icons.person_outline_rounded,
             textCapitalization: TextCapitalization.words,
             validator: (v) =>
@@ -534,7 +526,6 @@ class _ContactCard extends StatelessWidget {
           EaTextField(
             controller: contact.phone,
             label: 'Phone Number *',
-            hint: '10-digit mobile number',
             keyboardType: TextInputType.phone,
             prefixIcon: Icons.phone_rounded,
             maxLength: 10,

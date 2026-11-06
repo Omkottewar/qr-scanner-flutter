@@ -33,7 +33,7 @@ abstract final class LegalContent {
   // Customer-facing brand values. Grievance officer email intentionally
   // stays on the cpnetwork.in domain because it's the entity's
   // DPDP-registered redressal address.
-  static const String companyName = 'CP Network Private Limited';
+  static const String companyName = 'CP Infotech & CP Network Pvt. Ltd.';
   static const String officeAddress =
       '401, Antriksh Building, Makhwana Road, Marol Andheri East, Mumbai, Maharashtra 400069';
   static const String supportEmail = 'support@qr4emergency.com';
@@ -45,14 +45,14 @@ abstract final class LegalContent {
   static const String websiteUrl = 'www.qr4emergency.com';
 
   // ─── Privacy Policy ─────────────────────────────────────────────────────
-  // Source: CP Network Private Limited official Privacy Policy document
+  // Source: CP Infotech & CP Network Pvt. Ltd. official Privacy Policy document
   // (QR4Emergency_Privacy_Policy.pdf), effective 25 June 2026.
   static const privacyPolicy = LegalDocument(
     title: 'Privacy Policy',
     lastUpdated: '25 June 2026',
     intro:
         'QR 4 Emergency is a QR Code Vehicle Emergency Contact & Smart '
-        'Parking Solution operated by CP Network Private Limited.\n\n'
+        'Parking Solution operated by CP Infotech & CP Network Pvt. Ltd..\n\n'
         'Head Office: $officeAddress\n'
         'Email: $supportEmail\n'
         'Effective Date: 25 June 2026',
@@ -267,8 +267,8 @@ abstract final class LegalContent {
       LegalSection(
         heading: '4. Payment',
         body:
-            '• One-time payment: ₹499 per QR (inclusive of applicable '
-            'taxes).\n'
+            '• One-time payment: ₹599 per QR (inclusive of applicable '
+            'taxes and shipping).\n'
             '• The payment is for the registered QR and its associated '
             'services.\n'
             '• Each QR requires a separate one-time payment.',

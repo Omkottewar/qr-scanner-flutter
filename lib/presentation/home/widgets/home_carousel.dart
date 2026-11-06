@@ -1,6 +1,9 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../../../core/theme/app_colors.dart';
+import '../../../data/api_client.dart';
 
 class _Slide {
   const _Slide({
@@ -33,11 +36,102 @@ class _HomeCarouselState extends State<HomeCarousel> {
   final PageController _controller =
       PageController(viewportFraction: 0.92);
   int _index = 0;
+  Timer? _autoPlay;
+
+  // Auto-advance every 5 seconds. Pauses while the user is actively
+  // dragging via `onNotification`.
+  static const Duration _autoPlayInterval = Duration(seconds: 5);
+  bool _userIsScrolling = false;
+
+  // Slides shown now — starts as the hardcoded defaults so the carousel
+  // renders instantly on cold start, then gets swapped for the backend's
+  // list once GET /api/app/carousel returns. Falling back to defaults on
+  // network error means a flaky connection never leaves the home page
+  // staring at a blank slot.
+  List<_Slide> _slides = _defaultSlides;
+
+  @override
+  void initState() {
+    super.initState();
+    _startAutoPlay();
+    _fetchSlides();
+  }
+
+  // Pull slides from the backend so admin can swap images / captions /
+  // tags without an app rebuild. Only `tag/title/subtitle/imageUrl` come
+  // from the server — the color + gradient palette stays client-side and
+  // is picked by index, which keeps the admin surface area tiny while
+  // still letting us ship new slides overnight.
+  Future<void> _fetchSlides() async {
+    try {
+      final res = await ApiClient.instance.get(
+        '/api/app/carousel',
+        auth: false,
+      );
+      if (!mounted) return;
+      if (res is! Map) return;
+      final raw = res['items'];
+      if (raw is! List || raw.isEmpty) return;
+
+      final parsed = <_Slide>[];
+      for (var i = 0; i < raw.length && parsed.length < 10; i++) {
+        final item = raw[i];
+        if (item is! Map) continue;
+        final title = item['title']?.toString().trim() ?? '';
+        final imageUrl = item['imageUrl']?.toString().trim() ?? '';
+        if (title.isEmpty || imageUrl.isEmpty) continue;
+        final palette = _slidePalette[parsed.length % _slidePalette.length];
+        parsed.add(_Slide(
+          tag: item['tag']?.toString() ?? '',
+          title: title,
+          subtitle: item['subtitle']?.toString() ?? '',
+          imageUrl: imageUrl,
+          color: palette.$1,
+          gradient: palette.$2,
+        ));
+      }
+
+      if (parsed.isEmpty || !mounted) return;
+      setState(() {
+        _slides = parsed;
+        if (_index >= parsed.length) _index = 0;
+      });
+    } catch (_) {
+      // Swallow — defaults are already on screen and that's a fine
+      // fallback for a pure-cosmetic surface.
+    }
+  }
+
+  void _startAutoPlay() {
+    _autoPlay?.cancel();
+    _autoPlay = Timer.periodic(_autoPlayInterval, (_) {
+      if (!mounted || _userIsScrolling || !_controller.hasClients) return;
+      final next = (_index + 1) % _slides.length;
+      _controller.animateToPage(
+        next,
+        duration: const Duration(milliseconds: 600),
+        curve: Curves.easeInOutCubic,
+      );
+    });
+  }
+
+  // Color + gradient pairs used when slides come from the backend. Indexed
+  // by position so admin never has to think about styling — they just send
+  // text and an image URL.
+  static const List<(Color, List<Color>)> _slidePalette = [
+    (Color(0xFFFF3B30), [Color(0xFF8B0000), Color(0xFF0F1626)]),
+    (Color(0xFF8B5CF6), [Color(0xFF4C1D95), Color(0xFF0F1626)]),
+    (Color(0xFF14B8A6), [Color(0xFF134E4A), Color(0xFF0F1626)]),
+    (Color(0xFFFFB547), [Color(0xFF7A5210), Color(0xFF0F1626)]),
+    (Color(0xFF10B981), [Color(0xFF064E3B), Color(0xFF0F1626)]),
+    (Color(0xFF3B82F6), [Color(0xFF1E3A8A), Color(0xFF0F1626)]),
+  ];
 
   // Each slide pairs a caption with a topical image. Local assets win when
   // present; otherwise a specific Unsplash CDN URL (not a random service) is
-  // used so the photo always matches the caption.
-  static const List<_Slide> _slides = [
+  // used so the photo always matches the caption. These defaults are what
+  // the carousel shows on first paint and if the backend fetch fails.
+  static const List<_Slide> _defaultSlides = [
     _Slide(
       tag: 'ACCIDENT EMERGENCY',
       title: 'In a crash? Your family knows in seconds.',
@@ -104,6 +198,7 @@ class _HomeCarouselState extends State<HomeCarousel> {
 
   @override
   void dispose() {
+    _autoPlay?.cancel();
     _controller.dispose();
     super.dispose();
   }
@@ -114,17 +209,50 @@ class _HomeCarouselState extends State<HomeCarousel> {
       children: [
         SizedBox(
           height: 240,
-          child: PageView.builder(
-            controller: _controller,
-            onPageChanged: (i) => setState(() => _index = i),
-            itemCount: _slides.length,
-            itemBuilder: (context, i) {
-              final slide = _slides[i];
-              return Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 6),
-                child: _SlideCard(slide: slide, isFirst: i == 0),
-              );
+          child: NotificationListener<ScrollNotification>(
+            // Pause auto-advance while the user is interacting with the
+            // carousel. Resume once the gesture ends so the slideshow
+            // keeps cycling in the background.
+            onNotification: (n) {
+              if (n is ScrollStartNotification) {
+                _userIsScrolling = true;
+              } else if (n is ScrollEndNotification) {
+                _userIsScrolling = false;
+              }
+              return false;
             },
+            child: PageView.builder(
+              controller: _controller,
+              onPageChanged: (i) => setState(() => _index = i),
+              itemCount: _slides.length,
+              itemBuilder: (context, i) {
+                final slide = _slides[i];
+                // Parallax-ish zoom: the active page sits at scale 1.0,
+                // neighbours ease down to 0.92. Uses AnimatedBuilder on
+                // the PageController so it tracks drag in real time.
+                return AnimatedBuilder(
+                  animation: _controller,
+                  builder: (context, child) {
+                    double offset = 0;
+                    if (_controller.position.haveDimensions) {
+                      offset = (_controller.page ?? _index.toDouble()) - i;
+                    }
+                    final scale =
+                        (1 - (offset.abs() * 0.08)).clamp(0.92, 1.0);
+                    return Center(
+                      child: Transform.scale(
+                        scale: scale,
+                        child: child,
+                      ),
+                    );
+                  },
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 6),
+                    child: _SlideCard(slide: slide, isFirst: i == 0),
+                  ),
+                );
+              },
+            ),
           ),
         ),
         const SizedBox(height: 16),
@@ -133,15 +261,16 @@ class _HomeCarouselState extends State<HomeCarousel> {
           children: List.generate(_slides.length, (i) {
             final selected = i == _index;
             return AnimatedContainer(
-              duration: const Duration(milliseconds: 250),
+              duration: const Duration(milliseconds: 280),
+              curve: Curves.easeOutCubic,
               margin: const EdgeInsets.symmetric(horizontal: 4),
-              width: selected ? 22 : 8,
+              width: selected ? 24 : 8,
               height: 8,
               decoration: BoxDecoration(
                 gradient: selected ? AppColors.brandGradient : null,
                 color: selected
                     ? null
-                    : Colors.white.withValues(alpha: 0.18),
+                    : AppColors.textTertiary.withValues(alpha: 0.3),
                 borderRadius: BorderRadius.circular(4),
               ),
             );

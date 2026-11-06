@@ -6,6 +6,8 @@ import '../../core/ist_time.dart';
 import '../../core/theme/app_colors.dart';
 import '../../data/api_client.dart';
 import '../widgets/ea_card.dart';
+import '../widgets/qr_loader.dart';
+import '../widgets/shimmer_box.dart';
 
 /// Call Logs sub-tab under History.
 ///
@@ -201,13 +203,7 @@ class CallHistoryTabState extends State<CallHistoryTab> {
 
   Widget _buildBody() {
     if (_loading && _items.isEmpty) {
-      return ListView(
-        physics: const AlwaysScrollableScrollPhysics(),
-        children: const [
-          SizedBox(height: 140),
-          Center(child: CircularProgressIndicator(color: AppColors.primary)),
-        ],
-      );
+      return const PageSkeleton();
     }
     if (_error != null) {
       return _Error(message: _error!, onRetry: _load);
@@ -525,10 +521,10 @@ class _ActionButton extends StatelessWidget {
         : (primary ? AppColors.primary : AppColors.textSecondary);
     final bg = enabled
         ? base.withValues(alpha: primary && !danger ? 0.15 : 0.10)
-        : Colors.white.withValues(alpha: 0.04);
+        : AppColors.card;
     final border = enabled
         ? base.withValues(alpha: 0.35)
-        : Colors.white.withValues(alpha: 0.08);
+        : AppColors.hairline;
 
     return GestureDetector(
       onTap: onTap,
@@ -546,10 +542,7 @@ class _ActionButton extends StatelessWidget {
                   child: SizedBox(
                     width: 14,
                     height: 14,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: AppColors.textSecondary,
-                    ),
+                    child: QrLoader(size: 20, color: AppColors.textSecondary),
                   ),
                 ),
               )

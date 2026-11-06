@@ -23,6 +23,10 @@ class _LoginScreenState extends State<LoginScreen> {
   final _focus = FocusNode();
   bool _loading = false;
   bool _focused = false;
+  // Only India is actually wired to Exotel + DLT templates right now. The
+  // picker lists other countries for visual polish, but tapping them
+  // shows a "coming soon" toast and leaves India selected.
+  _Country _country = _Countries.india;
 
   @override
   void initState() {
@@ -41,6 +45,31 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   bool get _valid => _mobile.text.replaceAll(RegExp(r'\D'), '').length == 10;
+
+  Future<void> _openCountryPicker() async {
+    FocusScope.of(context).unfocus();
+    final picked = await showModalBottomSheet<_Country>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => _CountryPickerSheet(selected: _country),
+    );
+    if (picked == null || picked.dialCode == _country.dialCode) return;
+    // Only India is wired to the backend — any other pick is informational
+    // and resets to India.
+    if (!picked.supported) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(SnackBar(
+          content: Text(
+            '${picked.name} support is coming soon. Continuing with India.',
+          ),
+        ));
+      return;
+    }
+    setState(() => _country = picked);
+  }
 
   Future<void> _sendOtp() async {
     final m = _mobile.text.trim().replaceAll(RegExp(r'\s'), '');
@@ -98,7 +127,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
                 child: ClipOval(
                   child: Image.asset(
-                    'assets/images/logo.png',
+                    'assets/images/nayak.jpeg',
                     width: 88,
                     height: 88,
                     fit: BoxFit.cover,
@@ -163,12 +192,12 @@ class _LoginScreenState extends State<LoginScreen> {
                   AnimatedContainer(
                     duration: const Duration(milliseconds: 200),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF1A2236),
+                      color: AppColors.inputFill,
                       borderRadius: BorderRadius.circular(14),
                       border: Border.all(
                         color: _focused
                             ? AppColors.primary
-                            : Colors.white.withValues(alpha: 0.08),
+                            : AppColors.hairline,
                         width: _focused ? 1.5 : 1,
                       ),
                       boxShadow: _focused
@@ -189,28 +218,38 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                     child: Row(
                       children: [
-                        const Padding(
-                          padding: EdgeInsets.fromLTRB(16, 16, 8, 16),
-                          child: Row(
-                            children: [
-                              Text('🇮🇳', style: TextStyle(fontSize: 18)),
-                              SizedBox(width: 8),
-                              Text(
-                                '+91',
-                                style: TextStyle(
-                                  color: AppColors.textPrimary,
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.w700,
-                                  fontFeatures: [FontFeature.tabularFigures()],
+                        InkWell(
+                          onTap: _openCountryPicker,
+                          child: Padding(
+                            padding: const EdgeInsets.fromLTRB(16, 16, 8, 16),
+                            child: Row(
+                              children: [
+                                Text(_country.flag,
+                                    style: const TextStyle(fontSize: 18)),
+                                const SizedBox(width: 8),
+                                Text(
+                                  _country.dialCode,
+                                  style: const TextStyle(
+                                    color: AppColors.textPrimary,
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w700,
+                                    fontFeatures: [FontFeature.tabularFigures()],
+                                  ),
                                 ),
-                              ),
-                            ],
+                                const SizedBox(width: 4),
+                                const Icon(
+                                  Icons.keyboard_arrow_down_rounded,
+                                  color: AppColors.textSecondary,
+                                  size: 18,
+                                ),
+                              ],
+                            ),
                           ),
                         ),
                         Container(
                           width: 1,
                           height: 28,
-                          color: Colors.white.withValues(alpha: 0.10),
+                          color: AppColors.hairline,
                         ),
                         Expanded(
                           child: TextField(
@@ -230,12 +269,6 @@ class _LoginScreenState extends State<LoginScreen> {
                               fontFeatures: [FontFeature.tabularFigures()],
                             ),
                             decoration: const InputDecoration(
-                              hintText: '98765 43210',
-                              hintStyle: TextStyle(
-                                color: AppColors.textTertiary,
-                                fontWeight: FontWeight.w500,
-                                fontSize: 15,
-                              ),
                               border: InputBorder.none,
                               enabledBorder: InputBorder.none,
                               focusedBorder: InputBorder.none,
@@ -324,9 +357,9 @@ class _TrustBadge extends StatelessWidget {
           height: 40,
           alignment: Alignment.center,
           decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.05),
+            color: AppColors.card,
             shape: BoxShape.circle,
-            border: Border.all(color: Colors.white.withValues(alpha: 0.10)),
+            border: Border.all(color: AppColors.hairline),
           ),
           child: Icon(icon, color: AppColors.amber, size: 16),
         ),
@@ -341,6 +374,239 @@ class _TrustBadge extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Country model + static list. Only India is `supported = true` right now
+// — Exotel's dial-plan, our DLT templates and the OTP-via-SMS integration
+// are all India-only. Other entries render for visual polish and future
+// expansion; selecting them shows a "coming soon" toast.
+// -----------------------------------------------------------------------------
+class _Country {
+  const _Country({
+    required this.name,
+    required this.flag,
+    required this.dialCode,
+    this.supported = false,
+  });
+  final String name;
+  final String flag;
+  final String dialCode;
+  final bool supported;
+}
+
+abstract final class _Countries {
+  static const india = _Country(
+    name: 'India',
+    flag: '🇮🇳',
+    dialCode: '+91',
+    supported: true,
+  );
+
+  // Ordered alphabetically for predictable scan; India stays pinned at the
+  // top because it's the only supported entry.
+  static const all = <_Country>[
+    india,
+    _Country(name: 'Australia', flag: '🇦🇺', dialCode: '+61'),
+    _Country(name: 'Bangladesh', flag: '🇧🇩', dialCode: '+880'),
+    _Country(name: 'Canada', flag: '🇨🇦', dialCode: '+1'),
+    _Country(name: 'China', flag: '🇨🇳', dialCode: '+86'),
+    _Country(name: 'France', flag: '🇫🇷', dialCode: '+33'),
+    _Country(name: 'Germany', flag: '🇩🇪', dialCode: '+49'),
+    _Country(name: 'Indonesia', flag: '🇮🇩', dialCode: '+62'),
+    _Country(name: 'Italy', flag: '🇮🇹', dialCode: '+39'),
+    _Country(name: 'Japan', flag: '🇯🇵', dialCode: '+81'),
+    _Country(name: 'Malaysia', flag: '🇲🇾', dialCode: '+60'),
+    _Country(name: 'Nepal', flag: '🇳🇵', dialCode: '+977'),
+    _Country(name: 'Netherlands', flag: '🇳🇱', dialCode: '+31'),
+    _Country(name: 'New Zealand', flag: '🇳🇿', dialCode: '+64'),
+    _Country(name: 'Pakistan', flag: '🇵🇰', dialCode: '+92'),
+    _Country(name: 'Philippines', flag: '🇵🇭', dialCode: '+63'),
+    _Country(name: 'Russia', flag: '🇷🇺', dialCode: '+7'),
+    _Country(name: 'Saudi Arabia', flag: '🇸🇦', dialCode: '+966'),
+    _Country(name: 'Singapore', flag: '🇸🇬', dialCode: '+65'),
+    _Country(name: 'South Africa', flag: '🇿🇦', dialCode: '+27'),
+    _Country(name: 'South Korea', flag: '🇰🇷', dialCode: '+82'),
+    _Country(name: 'Spain', flag: '🇪🇸', dialCode: '+34'),
+    _Country(name: 'Sri Lanka', flag: '🇱🇰', dialCode: '+94'),
+    _Country(name: 'Thailand', flag: '🇹🇭', dialCode: '+66'),
+    _Country(name: 'Turkey', flag: '🇹🇷', dialCode: '+90'),
+    _Country(name: 'UAE', flag: '🇦🇪', dialCode: '+971'),
+    _Country(name: 'United Kingdom', flag: '🇬🇧', dialCode: '+44'),
+    _Country(name: 'United States', flag: '🇺🇸', dialCode: '+1'),
+    _Country(name: 'Vietnam', flag: '🇻🇳', dialCode: '+84'),
+  ];
+}
+
+// Bottom-sheet picker. Scrollable list of flag + name + dial code rows
+// with an inline search field. Unsupported rows get a "Coming soon"
+// subtitle but stay tappable so the user sees the toast rather than a
+// dead control.
+class _CountryPickerSheet extends StatefulWidget {
+  const _CountryPickerSheet({required this.selected});
+  final _Country selected;
+
+  @override
+  State<_CountryPickerSheet> createState() => _CountryPickerSheetState();
+}
+
+class _CountryPickerSheetState extends State<_CountryPickerSheet> {
+  final _searchCtrl = TextEditingController();
+  String _query = '';
+
+  @override
+  void dispose() {
+    _searchCtrl.dispose();
+    super.dispose();
+  }
+
+  List<_Country> get _filtered {
+    final q = _query.trim().toLowerCase();
+    if (q.isEmpty) return _Countries.all;
+    return _Countries.all.where((c) {
+      return c.name.toLowerCase().contains(q) || c.dialCode.contains(q);
+    }).toList();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final insets = MediaQuery.of(context).viewInsets.bottom;
+    return Padding(
+      padding: EdgeInsets.only(bottom: insets),
+      child: Container(
+        decoration: const BoxDecoration(
+          color: AppColors.card,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        child: SafeArea(
+          top: false,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(height: 10),
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: AppColors.hairline,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(height: 12),
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 20),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    'Select country',
+                    style: TextStyle(
+                      color: AppColors.textPrimary,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: -0.2,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: TextField(
+                  controller: _searchCtrl,
+                  onChanged: (v) => setState(() => _query = v),
+                  decoration: InputDecoration(
+                    prefixIcon: const Icon(
+                      Icons.search_rounded,
+                      color: AppColors.textTertiary,
+                    ),
+                    hintText: 'Search country or code',
+                    isDense: true,
+                    contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 10),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: AppColors.hairline),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: AppColors.hairline),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(
+                          color: AppColors.primary, width: 1.5),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 8),
+              Flexible(
+                child: ListView.separated(
+                  shrinkWrap: true,
+                  padding: const EdgeInsets.fromLTRB(8, 8, 8, 16),
+                  itemCount: _filtered.length,
+                  separatorBuilder: (_, _) =>
+                      const Divider(height: 1, color: AppColors.hairline),
+                  itemBuilder: (context, i) {
+                    final c = _filtered[i];
+                    final isSelected =
+                        widget.selected.dialCode == c.dialCode &&
+                            widget.selected.name == c.name;
+                    return ListTile(
+                      dense: true,
+                      visualDensity: VisualDensity.compact,
+                      leading: Text(c.flag,
+                          style: const TextStyle(fontSize: 22)),
+                      title: Text(
+                        c.name,
+                        style: TextStyle(
+                          color: c.supported
+                              ? AppColors.textPrimary
+                              : AppColors.textSecondary,
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      subtitle: c.supported
+                          ? null
+                          : const Text(
+                              'Coming soon',
+                              style: TextStyle(
+                                color: AppColors.textTertiary,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            c.dialCode,
+                            style: const TextStyle(
+                              color: AppColors.textSecondary,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w700,
+                              fontFeatures: [FontFeature.tabularFigures()],
+                            ),
+                          ),
+                          if (isSelected) ...[
+                            const SizedBox(width: 8),
+                            const Icon(Icons.check_rounded,
+                                color: AppColors.primary, size: 20),
+                          ],
+                        ],
+                      ),
+                      onTap: () => Navigator.of(context).pop(c),
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

@@ -4,6 +4,7 @@ import '../../core/ist_time.dart';
 import '../../core/theme/app_colors.dart';
 import '../../data/api_client.dart';
 import 'ea_card.dart';
+import 'shimmer_box.dart';
 
 class NotificationListScreen extends StatefulWidget {
   const NotificationListScreen({super.key});
@@ -100,7 +101,7 @@ class _NotificationListScreenState extends State<NotificationListScreen> {
         onRefresh: _loadNotifications,
         color: AppColors.primary,
         child: _loading
-            ? const Center(child: CircularProgressIndicator(color: AppColors.primary))
+            ? const PageSkeleton()
             : _error != null
                 ? ListView(
                     padding: const EdgeInsets.all(24),
@@ -178,7 +179,7 @@ class _NotificationListScreenState extends State<NotificationListScreen> {
                               child: EaCard(
                                 background: isRead ? AppColors.card : AppColors.card.withOpacity(0.85),
                                 border: isRead
-                                    ? Border.all(color: Colors.white10)
+                                    ? Border.all(color: AppColors.hairline)
                                     : Border.all(color: AppColors.primary.withOpacity(0.4), width: 1.5),
                                 child: Row(
                                   crossAxisAlignment: CrossAxisAlignment.start,

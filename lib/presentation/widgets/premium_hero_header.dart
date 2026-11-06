@@ -24,11 +24,7 @@ class PremiumHeroHeader extends StatelessWidget {
     return Container(
       padding: padding,
       decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [Color(0xFF101729), Color(0x0006090F)],
-        ),
+        gradient: AppColors.brandGradientSubtle,
       ),
       child: SafeArea(
         bottom: false,
