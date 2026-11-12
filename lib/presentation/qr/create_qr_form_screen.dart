@@ -476,6 +476,13 @@ class _CreateQrFormScreenState extends State<CreateQrFormScreen> {
                         title: 'Address',
                       ),
                       const SizedBox(height: 14),
+                      // Fields flow from broadest geographic scope to most
+                      // specific — Country → State → City → Pincode →
+                      // Address — matching the way addresses are read on a
+                      // shipping label. Pincode-triggered autofill still
+                      // populates city/state when the user types pincode,
+                      // which now simply overwrites any earlier entries if
+                      // India Post has a different canonical spelling.
                       _FormCard(
                         children: [
                           _FormField(
@@ -501,19 +508,40 @@ class _CreateQrFormScreenState extends State<CreateQrFormScreen> {
                           ),
                           const SizedBox(height: 18),
                           _FormField(
-                            icon: Icons.home_outlined,
-                            label: 'Address',
+                            icon: Icons.map_outlined,
+                            label: 'State',
+                            child: DropdownButtonFormField<String>(
+                              // ignore: deprecated_member_use
+                              value: _state,
+                              isExpanded: true,
+                              decoration: _dropdownDecoration(),
+                              items: _indianStates
+                                  .map((s) => DropdownMenuItem(
+                                        value: s,
+                                        child: Text(
+                                          s,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ))
+                                  .toList(),
+                              onChanged: (v) => setState(() => _state = v),
+                              validator: (v) =>
+                                  (v == null || v.isEmpty) ? 'Required' : null,
+                            ),
+                          ),
+                          const SizedBox(height: 18),
+                          _FormField(
+                            icon: Icons.location_city_outlined,
+                            label: 'City',
                             child: EaTextField(
-                              controller: _addressLine1,
-                              hint: 'House/Flat, Building, Street',
+                              controller: _city,
+                              hint: 'Your city',
                               validator: (v) => (v == null || v.trim().isEmpty)
-                                  ? 'Address is required'
+                                  ? 'Required'
                                   : null,
                             ),
                           ),
                           const SizedBox(height: 18),
-                          // Pincode goes ABOVE city/state so the postal
-                          // autofill can populate the next two fields.
                           _FormField(
                             icon: Icons.pin_drop_outlined,
                             label: 'Pincode',
@@ -548,37 +576,14 @@ class _CreateQrFormScreenState extends State<CreateQrFormScreen> {
                           ),
                           const SizedBox(height: 18),
                           _FormField(
-                            icon: Icons.location_city_outlined,
-                            label: 'City',
+                            icon: Icons.home_outlined,
+                            label: 'Address',
                             child: EaTextField(
-                              controller: _city,
-                              hint: 'Your city',
+                              controller: _addressLine1,
+                              hint: 'House/Flat, Building, Street',
                               validator: (v) => (v == null || v.trim().isEmpty)
-                                  ? 'Required'
+                                  ? 'Address is required'
                                   : null,
-                            ),
-                          ),
-                          const SizedBox(height: 18),
-                          _FormField(
-                            icon: Icons.map_outlined,
-                            label: 'State',
-                            child: DropdownButtonFormField<String>(
-                              // ignore: deprecated_member_use
-                              value: _state,
-                              isExpanded: true,
-                              decoration: _dropdownDecoration(),
-                              items: _indianStates
-                                  .map((s) => DropdownMenuItem(
-                                        value: s,
-                                        child: Text(
-                                          s,
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
-                                      ))
-                                  .toList(),
-                              onChanged: (v) => setState(() => _state = v),
-                              validator: (v) =>
-                                  (v == null || v.isEmpty) ? 'Required' : null,
                             ),
                           ),
                         ],
