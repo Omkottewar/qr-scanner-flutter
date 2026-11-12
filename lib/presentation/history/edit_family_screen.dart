@@ -4,12 +4,11 @@ import 'package:flutter/services.dart';
 import '../../core/error_messages.dart';
 import '../../core/theme/app_colors.dart';
 import '../../data/api_client.dart';
-import '../widgets/ea_card.dart';
 import '../widgets/ea_primary_button.dart';
 import '../widgets/ea_text_field.dart';
 import '../widgets/info_banner.dart';
-import '../widgets/scale_tap.dart';
 import '../widgets/qr_loader.dart';
+import '../widgets/scale_tap.dart';
 
 class EditFamilyScreen extends StatefulWidget {
   const EditFamilyScreen({
@@ -33,8 +32,8 @@ class _EditFamilyScreenState extends State<EditFamilyScreen> {
   final _formKey = GlobalKey<FormState>();
   final List<_ContactRow> _contacts = [];
   // Owner phone — the number that gets bridged when a bystander taps
-  // "Call Owner" on the alert page. Edits to qrdata.mobile only; the
-  // user's account login mobile is intentionally left alone.
+  // "Call Owner" on the alert page. Read-only; editing it from here would
+  // let a compromised session hijack the bridge target.
   late final TextEditingController _ownerPhone;
   bool _loading = true;
   bool _saving = false;
@@ -96,16 +95,14 @@ class _EditFamilyScreenState extends State<EditFamilyScreen> {
   }
 
   void _removeContact(int index) {
-    if (_contacts.length <= 1) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('At least one emergency contact is required')),
-      );
-      return;
-    }
     HapticFeedback.lightImpact();
     setState(() {
       final c = _contacts.removeAt(index);
       c.dispose();
+      // Always keep at least one empty slot visible so the user has a
+      // typing surface — the "Add contact" button is clearer when there's
+      // already a row showing it's safe to fill one in.
+      if (_contacts.isEmpty) _contacts.add(_ContactRow());
     });
   }
 
@@ -114,10 +111,15 @@ class _EditFamilyScreenState extends State<EditFamilyScreen> {
     HapticFeedback.lightImpact();
     setState(() => _saving = true);
     try {
-      // Owner-phone edit was dropped — the field is read-only, so we only
-      // ever push family changes now.
+      // Every row is optional — drop any row where both name and phone are
+      // blank. Matches how /qr/create accepts zero contacts.
+      final rows = _contacts.where((c) {
+        final n = c.name.text.trim();
+        final p = c.phone.text.trim();
+        return n.isNotEmpty || p.isNotEmpty;
+      }).toList();
       final payload = {
-        'family': _contacts
+        'family': rows
             .map((c) => {
                   'name': c.name.text.trim(),
                   'phone':
@@ -143,169 +145,226 @@ class _EditFamilyScreenState extends State<EditFamilyScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final subtitle = widget.ownerName.isNotEmpty
+        ? '${widget.ownerName} · ${widget.vehicleNumber}'
+        : widget.vehicleNumber;
+
     return Scaffold(
-      backgroundColor: Colors.transparent,
-      extendBodyBehindAppBar: true,
-      body: Stack(
-        children: [
-          const _AmbientBg(),
-          SafeArea(
-            child: Column(
-              children: [
-                _TopBar(
-                  ownerName: widget.ownerName,
-                  vehicleNumber: widget.vehicleNumber,
-                  onBack: () => Navigator.pop(context),
+      backgroundColor: AppColors.background,
+      appBar: AppBar(
+        backgroundColor: AppColors.background,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => Navigator.pop(context),
+        ),
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text(
+              'Edit Contacts',
+              style: TextStyle(
+                color: AppColors.textPrimary,
+                fontSize: 17,
+                fontWeight: FontWeight.w800,
+                letterSpacing: -0.2,
+              ),
+            ),
+            if (subtitle.isNotEmpty)
+              Text(
+                subtitle,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  color: AppColors.textSecondary,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
                 ),
-                Expanded(
-                  child: _loading
-                      ? const Center(
-                          child: QrLoader(size: 20),
-                        )
-                      : _error != null
-                          ? _ErrorState(message: _error!, onRetry: _load)
-                          : Form(
-                              key: _formKey,
-                              child: ListView(
-                                physics: const BouncingScrollPhysics(),
-                                padding:
-                                    const EdgeInsets.fromLTRB(20, 6, 20, 28),
-                                children: [
-                                  EaCard(
-                                    padding: const EdgeInsets.all(16),
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
+              ),
+          ],
+        ),
+      ),
+      body: SafeArea(
+        top: false,
+        child: _loading
+            ? const Center(child: QrLoader(size: 20))
+            : _error != null
+                ? _ErrorState(message: _error!, onRetry: _load)
+                : Column(
+                    children: [
+                      Expanded(
+                        child: SingleChildScrollView(
+                          padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
+                          child: Form(
+                            key: _formKey,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                // ── Owner ────────────────────────────────
+                                const _SectionBanner(
+                                  icon: Icons.person_rounded,
+                                  title: 'Owner',
+                                ),
+                                const SizedBox(height: 14),
+                                _FormCard(
+                                  children: [
+                                    Row(
                                       children: [
-                                        Row(
-                                          children: [
-                                            Text(
-                                              'Owner Phone',
-                                              style: Theme.of(context)
-                                                  .textTheme
-                                                  .titleSmall
-                                                  ?.copyWith(
-                                                      fontWeight:
-                                                          FontWeight.w800),
-                                            ),
-                                            const SizedBox(width: 8),
-                                            // Locked chip so the greyed-out
-                                            // field's disabled state has a
-                                            // clear "why" affordance rather
-                                            // than looking like a bug.
-                                            Container(
-                                              padding: const EdgeInsets
-                                                  .symmetric(
-                                                  horizontal: 8, vertical: 3),
-                                              decoration: BoxDecoration(
-                                                color: AppColors.textTertiary
-                                                    .withValues(alpha: 0.15),
-                                                borderRadius:
-                                                    BorderRadius.circular(999),
-                                              ),
-                                              child: Row(
-                                                mainAxisSize:
-                                                    MainAxisSize.min,
-                                                children: const [
-                                                  Icon(
-                                                    Icons.lock_rounded,
-                                                    size: 10,
-                                                    color: AppColors
-                                                        .textTertiary,
-                                                  ),
-                                                  SizedBox(width: 4),
-                                                  Text(
-                                                    'LOCKED',
-                                                    style: TextStyle(
-                                                      color: AppColors
-                                                          .textTertiary,
-                                                      fontSize: 9,
-                                                      fontWeight:
-                                                          FontWeight.w800,
-                                                      letterSpacing: 1.2,
-                                                    ),
-                                                  ),
-                                                ],
-                                              ),
-                                            ),
-                                          ],
+                                        const Icon(
+                                          Icons.lock_rounded,
+                                          size: 14,
+                                          color: AppColors.textTertiary,
                                         ),
-                                        const SizedBox(height: 4),
-                                        Text(
-                                          'The number that gets called when a bystander taps "Call Owner". Locked to the number you registered with — contact support to change it.',
-                                          style: Theme.of(context)
-                                              .textTheme
-                                              .bodySmall
-                                              ?.copyWith(
-                                                  color:
-                                                      AppColors.textSecondary,
-                                                  height: 1.4),
-                                        ),
-                                        const SizedBox(height: 12),
-                                        // Read-only. Editing was too easy a
-                                        // way for a compromised session to
-                                        // hijack the "Call Owner" bridge.
-                                        EaTextField(
-                                          controller: _ownerPhone,
-                                          label: 'Phone Number',
-                                          keyboardType: TextInputType.phone,
-                                          prefixIcon: Icons.lock_outline_rounded,
-                                          readOnly: true,
-                                          enabled: false,
+                                        const SizedBox(width: 6),
+                                        const Text(
+                                          'LOCKED',
+                                          style: TextStyle(
+                                            color: AppColors.textTertiary,
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.w800,
+                                            letterSpacing: 1.3,
+                                          ),
                                         ),
                                       ],
                                     ),
-                                  ),
-                                  const SizedBox(height: 14),
-                                  const InfoBanner(
-                                    text:
-                                        'These are the people contacted when someone scans your QR. Up to 4 allowed.',
-                                  ),
-                                  const SizedBox(height: 18),
-                                  ...List.generate(_contacts.length, (i) {
-                                    return Padding(
-                                      padding:
-                                          const EdgeInsets.only(bottom: 14),
-                                      child: _ContactCard(
-                                        index: i,
-                                        contact: _contacts[i],
-                                        canRemove: _contacts.length > 1,
-                                        onRemove: () => _removeContact(i),
-                                      ),
-                                    );
-                                  }),
-                                  if (_contacts.length < 3)
-                                    _AddContactButton(onTap: _addContact),
-                                  const SizedBox(height: 14),
-                                  Center(
-                                    child: Text(
-                                      '${_contacts.length}/3 contacts',
-                                      style: const TextStyle(
-                                        color: AppColors.textTertiary,
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.w600,
-                                        letterSpacing: 0.3,
+                                    const SizedBox(height: 8),
+                                    const Text(
+                                      'The number that gets called when a bystander taps "Call Owner". Locked to the number you registered with — contact support to change it.',
+                                      style: TextStyle(
+                                        color: AppColors.textSecondary,
+                                        fontSize: 13,
+                                        height: 1.45,
                                       ),
                                     ),
+                                    const SizedBox(height: 16),
+                                    _FormField(
+                                      icon: Icons.phone_android_rounded,
+                                      label: 'Owner Phone',
+                                      child: EaTextField(
+                                        controller: _ownerPhone,
+                                        keyboardType: TextInputType.phone,
+                                        prefixIcon:
+                                            Icons.lock_outline_rounded,
+                                        readOnly: true,
+                                        enabled: false,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 20),
+
+                                // ── Emergency Contacts ───────────────────
+                                const _SectionBanner(
+                                  icon: Icons.groups_rounded,
+                                  title: 'Emergency Contacts',
+                                ),
+                                const SizedBox(height: 14),
+                                const InfoBanner(
+                                  text:
+                                      'These are the people contacted when someone scans your QR. Up to 3 allowed — all optional.',
+                                ),
+                                const SizedBox(height: 14),
+                                ...List.generate(_contacts.length, (i) {
+                                  final c = _contacts[i];
+                                  return Padding(
+                                    padding:
+                                        const EdgeInsets.only(bottom: 14),
+                                    child: _ContactCard(
+                                      onRemove: () => _removeContact(i),
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.stretch,
+                                        children: [
+                                          _FormField(
+                                            icon:
+                                                Icons.person_outline_rounded,
+                                            label: 'Name',
+                                            child: EaTextField(
+                                              controller: c.name,
+                                              hint: 'Enter contact name',
+                                              textCapitalization:
+                                                  TextCapitalization.words,
+                                              validator: (v) {
+                                                final s = (v ?? '').trim();
+                                                if (s.isEmpty &&
+                                                    c.phone.text
+                                                        .trim()
+                                                        .isNotEmpty) {
+                                                  return 'Name is required when phone is filled';
+                                                }
+                                                return null;
+                                              },
+                                            ),
+                                          ),
+                                          const SizedBox(height: 18),
+                                          _FormField(
+                                            icon:
+                                                Icons.phone_android_rounded,
+                                            label: 'Mobile Number',
+                                            child: EaTextField(
+                                              controller: c.phone,
+                                              hint: '10-digit mobile number',
+                                              keyboardType:
+                                                  TextInputType.phone,
+                                              maxLength: 10,
+                                              inputFormatters: [
+                                                FilteringTextInputFormatter
+                                                    .digitsOnly,
+                                              ],
+                                              validator: (v) {
+                                                final s = (v ?? '').trim();
+                                                if (s.isEmpty &&
+                                                    c.name.text
+                                                        .trim()
+                                                        .isNotEmpty) {
+                                                  return 'Phone is required when name is filled';
+                                                }
+                                                if (s.isNotEmpty &&
+                                                    !RegExp(r'^[0-9]{10}$')
+                                                        .hasMatch(s)) {
+                                                  return 'Enter a valid 10-digit number';
+                                                }
+                                                return null;
+                                              },
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  );
+                                }),
+                                if (_contacts.length < 3)
+                                  _AddContactButton(onTap: _addContact),
+                                const SizedBox(height: 10),
+                                Center(
+                                  child: Text(
+                                    '${_contacts.length}/3 contacts',
+                                    style: const TextStyle(
+                                      color: AppColors.textTertiary,
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w600,
+                                      letterSpacing: 0.3,
+                                    ),
                                   ),
-                                ],
-                              ),
+                                ),
+                              ],
                             ),
-                ),
-                if (!_loading && _error == null)
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
-                    child: EaPrimaryButton(
-                      label: 'Save Changes',
-                      icon: Icons.check_rounded,
-                      loading: _saving,
-                      onPressed: _saving ? null : _save,
-                    ),
+                          ),
+                        ),
+                      ),
+                      Padding(
+                        padding:
+                            const EdgeInsets.fromLTRB(20, 0, 20, 16),
+                        child: EaPrimaryButton(
+                          label: 'Save Changes',
+                          icon: Icons.check_rounded,
+                          loading: _saving,
+                          onPressed: _saving ? null : _save,
+                        ),
+                      ),
+                    ],
                   ),
-              ],
-            ),
-          ),
-        ],
       ),
     );
   }
@@ -325,101 +384,56 @@ class _ContactRow {
   }
 }
 
-class _AmbientBg extends StatelessWidget {
-  const _AmbientBg();
+// -----------------------------------------------------------------------------
+// Red section banner — mirrors the one used in create_qr_form_screen.dart so
+// the edit flow reads as part of the same family. Icon + divider + bold
+// white title on a red-maroon gradient.
+// -----------------------------------------------------------------------------
+class _SectionBanner extends StatelessWidget {
+  const _SectionBanner({required this.icon, required this.title});
+
+  final IconData icon;
+  final String title;
+
   @override
   Widget build(BuildContext context) {
-    return Positioned.fill(
-      child: Stack(
-        children: [
-          const DecoratedBox(
-            decoration: BoxDecoration(gradient: AppColors.backgroundGradient),
-          ),
-          Positioned(
-            top: -80,
-            right: -100,
-            child: IgnorePointer(
-              child: Container(
-                width: 280,
-                height: 280,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: RadialGradient(colors: [
-                    AppColors.primary.withValues(alpha: 0.25),
-                    Colors.transparent,
-                  ]),
-                ),
-              ),
-            ),
+    return Container(
+      padding: const EdgeInsets.fromLTRB(18, 16, 18, 16),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFFB71218), Color(0xFF8A0A10)],
+        ),
+        borderRadius: BorderRadius.circular(18),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.primary.withValues(alpha: 0.3),
+            blurRadius: 18,
+            spreadRadius: -4,
+            offset: const Offset(0, 8),
           ),
         ],
       ),
-    );
-  }
-}
-
-class _TopBar extends StatelessWidget {
-  const _TopBar({
-    required this.ownerName,
-    required this.vehicleNumber,
-    required this.onBack,
-  });
-
-  final String ownerName;
-  final String vehicleNumber;
-  final VoidCallback onBack;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 12, 20, 16),
       child: Row(
         children: [
-          IconButton(
-            onPressed: onBack,
-            icon: const Icon(Icons.arrow_back_rounded),
-            style: IconButton.styleFrom(
-              backgroundColor: AppColors.glassFill,
-              shape: const CircleBorder(
-                side: BorderSide(color: AppColors.glassStroke),
-              ),
-            ),
+          Icon(icon, color: Colors.white, size: 28),
+          const SizedBox(width: 14),
+          Container(
+            width: 1.5,
+            height: 26,
+            color: Colors.white.withValues(alpha: 0.5),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 14),
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Text(
-                  'EDIT CONTACTS',
-                  style: TextStyle(
-                    color: AppColors.amber,
-                    fontSize: 10.5,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: 1.4,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  ownerName.isEmpty ? vehicleNumber : ownerName,
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: -0.3,
-                      ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                if (ownerName.isNotEmpty)
-                  Text(
-                    vehicleNumber,
-                    style: const TextStyle(
-                      color: AppColors.textSecondary,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-              ],
+            child: Text(
+              title,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 19,
+                fontWeight: FontWeight.w900,
+                letterSpacing: -0.2,
+              ),
             ),
           ),
         ],
@@ -428,122 +442,155 @@ class _TopBar extends StatelessWidget {
   }
 }
 
-class _ContactCard extends StatelessWidget {
-  const _ContactCard({
-    required this.index,
-    required this.contact,
-    required this.canRemove,
-    required this.onRemove,
+// -----------------------------------------------------------------------------
+// White content card used directly below a `_SectionBanner`.
+// -----------------------------------------------------------------------------
+class _FormCard extends StatelessWidget {
+  const _FormCard({required this.children});
+
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(18, 18, 18, 20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: AppColors.hairline),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 24,
+            spreadRadius: -6,
+            offset: const Offset(0, 10),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: children,
+      ),
+    );
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Icon + bold label on top, input below.
+// -----------------------------------------------------------------------------
+class _FormField extends StatelessWidget {
+  const _FormField({
+    required this.icon,
+    required this.label,
+    required this.child,
   });
 
-  final int index;
-  final _ContactRow contact;
-  final bool canRemove;
+  final IconData icon;
+  final String label;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
+          children: [
+            Icon(icon, color: AppColors.textPrimary, size: 22),
+            const SizedBox(width: 6),
+            Text(
+              label,
+              style: const TextStyle(
+                color: AppColors.textPrimary,
+                fontSize: 16,
+                fontWeight: FontWeight.w800,
+                letterSpacing: -0.1,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        child,
+      ],
+    );
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Plain white card wrapping the two fields for a single contact. A small
+// red "remove" chip sits in the top-right so users can clear a row.
+// -----------------------------------------------------------------------------
+class _ContactCard extends StatelessWidget {
+  const _ContactCard({required this.child, required this.onRemove});
+
+  final Widget child;
   final VoidCallback onRemove;
 
   @override
   Widget build(BuildContext context) {
-    return EaCard(
-      padding: const EdgeInsets.all(16),
+    return Container(
+      padding: const EdgeInsets.fromLTRB(18, 14, 18, 20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: AppColors.hairline),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 24,
+            spreadRadius: -6,
+            offset: const Offset(0, 10),
+          ),
+        ],
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Row(
-            children: [
-              Container(
-                width: 36,
-                height: 36,
+          Align(
+            alignment: Alignment.centerRight,
+            child: ScaleTap(
+              onTap: onRemove,
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 10, vertical: 6),
                 decoration: BoxDecoration(
-                  gradient: AppColors.brandGradientSubtle,
-                  borderRadius: BorderRadius.circular(11),
+                  color: AppColors.red.withValues(alpha: 0.10),
+                  borderRadius: BorderRadius.circular(999),
                   border: Border.all(
-                    color: AppColors.primary.withValues(alpha: 0.35),
+                    color: AppColors.red.withValues(alpha: 0.25),
                   ),
                 ),
-                child: Center(
-                  child: Text(
-                    '${index + 1}',
-                    style: const TextStyle(
-                      color: AppColors.amber,
-                      fontWeight: FontWeight.w800,
-                      fontSize: 14,
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  'Contact ${index + 1}',
-                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.delete_outline_rounded,
+                        color: AppColors.red, size: 14),
+                    SizedBox(width: 4),
+                    Text(
+                      'Clear',
+                      style: TextStyle(
+                        color: AppColors.red,
+                        fontSize: 11,
                         fontWeight: FontWeight.w800,
+                        letterSpacing: 0.3,
                       ),
+                    ),
+                  ],
                 ),
               ),
-              if (canRemove)
-                ScaleTap(
-                  onTap: onRemove,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 10, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: AppColors.red.withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(
-                        color: AppColors.red.withValues(alpha: 0.3),
-                      ),
-                    ),
-                    child: const Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.delete_outline_rounded,
-                            color: AppColors.red, size: 14),
-                        SizedBox(width: 4),
-                        Text(
-                          'Remove',
-                          style: TextStyle(
-                            color: AppColors.red,
-                            fontSize: 11,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-            ],
+            ),
           ),
-          const SizedBox(height: 16),
-          EaTextField(
-            controller: contact.name,
-            label: 'Name *',
-            prefixIcon: Icons.person_outline_rounded,
-            textCapitalization: TextCapitalization.words,
-            validator: (v) =>
-                (v == null || v.trim().isEmpty) ? 'Required' : null,
-          ),
-          const SizedBox(height: 14),
-          EaTextField(
-            controller: contact.phone,
-            label: 'Phone Number *',
-            keyboardType: TextInputType.phone,
-            prefixIcon: Icons.phone_rounded,
-            maxLength: 10,
-            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-            validator: (v) {
-              if (v == null || v.trim().isEmpty) return 'Required';
-              if (!RegExp(r'^[0-9]{10}$').hasMatch(v.trim())) {
-                return 'Enter a valid 10-digit number';
-              }
-              return null;
-            },
-          ),
+          const SizedBox(height: 8),
+          child,
         ],
       ),
     );
   }
 }
 
+// -----------------------------------------------------------------------------
+// Dashed-feel light button for adding another contact row.
+// -----------------------------------------------------------------------------
 class _AddContactButton extends StatelessWidget {
   const _AddContactButton({required this.onTap});
   final VoidCallback onTap;
@@ -555,10 +602,10 @@ class _AddContactButton extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
         decoration: BoxDecoration(
-          color: AppColors.glassFill,
+          color: AppColors.primary.withValues(alpha: 0.05),
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: AppColors.primary.withValues(alpha: 0.4),
+            color: AppColors.primary.withValues(alpha: 0.35),
             width: 1.2,
           ),
         ),
@@ -569,7 +616,7 @@ class _AddContactButton extends StatelessWidget {
               width: 28,
               height: 28,
               alignment: Alignment.center,
-              decoration: BoxDecoration(
+              decoration: const BoxDecoration(
                 gradient: AppColors.brandGradient,
                 shape: BoxShape.circle,
               ),
@@ -582,7 +629,7 @@ class _AddContactButton extends StatelessWidget {
               style: TextStyle(
                 color: AppColors.textPrimary,
                 fontSize: 14,
-                fontWeight: FontWeight.w700,
+                fontWeight: FontWeight.w800,
               ),
             ),
           ],
@@ -613,6 +660,7 @@ class _ErrorState extends StatelessWidget {
           textAlign: TextAlign.center,
           style: Theme.of(context).textTheme.titleMedium?.copyWith(
                 fontWeight: FontWeight.w800,
+                color: AppColors.textPrimary,
               ),
         ),
         const SizedBox(height: 8),

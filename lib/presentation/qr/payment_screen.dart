@@ -697,11 +697,16 @@ class _PaymentScreenState extends State<PaymentScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Display uses the intended (real) price so subscribers always see
-    // ₹299 on the button. The actual charge (_amountPaise) is what
-    // Razorpay's modal will show and debit.
-    final displayPaise = _intendedAmountPaise ?? _amountPaise ?? 29900;
-    final rupees = (displayPaise / 100).toStringAsFixed(0);
+    // Display uses the intended (real) price. Until /payments/razorpay/order
+    // comes back we don't yet know the authoritative amount, so render an
+    // em-dash rather than a hardcoded fallback — showing ₹299 for a split
+    // second before it swaps to the real ₹599 looked like a stale demo
+    // price. The Pay button is already gated on `_loading`, so the dash
+    // only appears in the breakdown card during that same window.
+    final displayPaise = _intendedAmountPaise ?? _amountPaise;
+    final rupees = displayPaise == null
+        ? '—'
+        : (displayPaise / 100).toStringAsFixed(0);
 
     return Scaffold(
       appBar: AppBar(
@@ -824,7 +829,6 @@ class _PaymentScreenState extends State<PaymentScreen> {
                               const SizedBox(height: 6),
                               ...[
                                 'Generate QR Codes',
-                                'Up to 4 Emergency Contacts',
                                 'Call Masking Feature',
                                 'Waterproof QR Sticker',
                                 'Lifetime access · No annual renewal',

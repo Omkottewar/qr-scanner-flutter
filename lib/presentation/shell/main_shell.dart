@@ -226,10 +226,13 @@ class _PremiumNav extends StatelessWidget {
       top: false,
       child: Padding(
         padding: const EdgeInsets.fromLTRB(12, 0, 12, 14),
-        // Taller box so the raised scan button has room to float above
-        // the pill without clipping.
+        // Tall enough to hold the 72-px pill plus the raised scan disc
+        // (70 wide + 5 px white ring + an upward shadow). The outer
+        // ClipRect we use to bound the BackdropFilter would otherwise
+        // crop the top of the disc, so size the box for the full extent
+        // rather than relying on Stack's Clip.none alone.
         child: SizedBox(
-          height: 86,
+          height: 112,
           child: Stack(
             clipBehavior: Clip.none,
             alignment: Alignment.bottomCenter,
@@ -451,7 +454,11 @@ class _SideDrawer extends StatelessWidget {
                     child: ClipOval(
                       child: Image.asset(
                         'assets/images/nayak.jpeg',
-                        fit: BoxFit.cover,
+                        // contain (not cover) so the full sticker — "BE
+                        // NAYAK", QR frame, and taglines — is visible
+                        // inside the oval rather than cropping to just
+                        // the middle slice.
+                        fit: BoxFit.contain,
                         errorBuilder: (_, _, _) => Container(
                           decoration: const BoxDecoration(
                             gradient: AppColors.brandGradient,

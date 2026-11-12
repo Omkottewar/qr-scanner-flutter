@@ -601,8 +601,6 @@ class _CreateQrFormScreenState extends State<CreateQrFormScreen> {
                         return Padding(
                           padding: const EdgeInsets.only(bottom: 14),
                           child: _ContactCard(
-                            index: i + 1,
-                            isRequired: false,
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.stretch,
                               children: [
@@ -902,19 +900,14 @@ class _DobInput extends StatelessWidget {
 }
 
 // -----------------------------------------------------------------------------
-// Numbered contact card — white surface with a round number badge in the
-// top-left corner. Required (index=1) gets a filled red badge; optional
-// rows get a soft red tint + "Optional" chip.
+// Contact card — plain white surface wrapping the name + phone fields. No
+// numbered badge or required/optional chip: every contact is optional and
+// the cards sit identically. The red "Emergency Contacts" section banner
+// upstream is the only header the user needs.
 // -----------------------------------------------------------------------------
 class _ContactCard extends StatelessWidget {
-  const _ContactCard({
-    required this.index,
-    required this.isRequired,
-    required this.child,
-  });
+  const _ContactCard({required this.child});
 
-  final int index;
-  final bool isRequired;
   final Widget child;
 
   @override
@@ -934,55 +927,7 @@ class _ContactCard extends StatelessWidget {
           ),
         ],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Row(
-            children: [
-              Container(
-                width: 36,
-                height: 36,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: isRequired
-                      ? AppColors.primary
-                      : AppColors.primary.withValues(alpha: 0.15),
-                ),
-                child: Text(
-                  '$index',
-                  style: TextStyle(
-                    color: isRequired ? Colors.white : AppColors.primary,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 12),
-              if (!isRequired)
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: AppColors.inputFill,
-                    borderRadius: BorderRadius.circular(999),
-                  ),
-                  child: Text(
-                    'OPTIONAL',
-                    style: TextStyle(
-                      color: AppColors.textSecondary,
-                      fontSize: 10.5,
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: 1,
-                    ),
-                  ),
-                ),
-            ],
-          ),
-          const SizedBox(height: 18),
-          child,
-        ],
-      ),
+      child: child,
     );
   }
 }

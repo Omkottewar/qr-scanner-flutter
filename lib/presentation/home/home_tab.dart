@@ -62,7 +62,9 @@ class HomeTab extends StatelessWidget {
               const SliverToBoxAdapter(child: SizedBox(height: 10)),
               const SliverToBoxAdapter(child: _TrustStrip()),
               const SliverToBoxAdapter(child: SizedBox(height: 10)),
-              const SliverToBoxAdapter(child: _CertificationsSection()),
+              SliverToBoxAdapter(
+                child: _CertificationsSection(onTapScan: onOpenQr),
+              ),
               const SliverToBoxAdapter(child: SizedBox(height: 140)),
             ],
           ),
@@ -463,7 +465,7 @@ class _FeatureCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 150,
+      width: 170,
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
         color: Colors.white,
@@ -481,12 +483,17 @@ class _FeatureCard extends StatelessWidget {
           const SizedBox(height: 10),
           Text(
             spec.title,
-            maxLines: 1,
+            // Two lines so "Universal QR Scanner" and other longer titles
+            // wrap gracefully instead of ellipsizing mid-word. Short
+            // titles (e.g. "Instant Connect") still render on one line
+            // because Column sizes to content.
+            maxLines: 2,
             overflow: TextOverflow.ellipsis,
             style: const TextStyle(
               color: Color(0xFF212121),
               fontSize: 13,
               fontWeight: FontWeight.w700,
+              height: 1.2,
             ),
           ),
           const SizedBox(height: 2),
@@ -1067,96 +1074,405 @@ class _TrustCell extends StatelessWidget {
 }
 
 // -----------------------------------------------------------------------------
-// Certifications section — styled like a "Claim your benefits" banner
-// panel. Brand-red gradient background hosts an eyebrow label, a bold
-// headline, and a 2-column grid of white benefit-style cards. Each card
-// gets a circular gradient icon badge, a title, a muted scope summary
-// and a "View certificate →" CTA at the bottom.
+// Certifications section — "credentials vault" module. Light outer wrapper
+// (matches the home-page card rhythm) holds a dark-maroon inner carousel
+// of gold medallions. Each slide shows 4 circular credentials with a
+// center "BE NAYAK / TAP TO SCAN" button that opens the scanner tab.
 //
-// Backed by CP Infotech & CP Network Pvt. Ltd.'s actual registrations:
-// ISO 9001:2015, ISO/IEC 27001:2022, and MSME Udyam.
+// Data-driven: dump every registration into `_allCerts` and the carousel
+// auto-chunks them 4-per-slide with dots at the bottom. Only the real,
+// verifiable credentials belong in that list — fake ones would mislead
+// customers and expose the company to consumer-protection complaints.
 // -----------------------------------------------------------------------------
-class _CertificationsSection extends StatelessWidget {
-  const _CertificationsSection();
+class _CertificationsSection extends StatefulWidget {
+  const _CertificationsSection({required this.onTapScan});
 
-  static const _certs = <_CertSpec>[
+  final VoidCallback onTapScan;
+
+  // Every entry in this list becomes one gold medallion. New entries are
+  // automatically paginated 4 per slide — no layout changes needed when
+  // you add the remaining registrations. Order inside the list is the
+  // visual order (slide 1 top-left → slide 1 top-right → slide 1
+  // bottom-left → slide 1 bottom-right → slide 2 …).
+  //
+  // Field guide:
+  //   category — eyebrow above the medallion ("QUALITY SYSTEM")
+  //   title    — cert headline ("ISO 9001")
+  //   subtitle — year / issuer line ("2015 CERTIFIED")
+  //   chip     — short promise shown in the pill below ("Quality Assured")
+  //   icon     — material symbol that reads as the cert's domain
+  //   accent   — medium-bright color used for the icon + chip tint; the
+  //              gold ring around each medallion is shared so brand feel
+  //              stays consistent across slides
+  static const _allCerts = <_CertSpec>[
+    // ── Slide 1 ──────────────────────────────────────────────────────────
     _CertSpec(
+      category: 'QUALITY SYSTEM',
+      title: 'ISO 9001',
+      subtitle: '2015 CERTIFIED',
+      chip: 'Quality Assured',
       icon: Icons.workspace_premium_rounded,
-      title: 'ISO 9001:2015',
-      subtitle: 'Quality Management System',
-      number: 'ICIL-CPNPL-26-0510544',
-      color: Color(0xFFE51E25),
+      accent: Color(0xFFFFC85A),
+      fullTitle: 'ISO 9001:2015 Quality Management System',
+      summary:
+          'Independent audit confirming the Quality Management System meets the international ISO 9001:2015 standard.',
+      legalEntity: 'C P NETWORK PRIVATE LIMITED',
+      registrationNumber: 'ICIL-CPNPL-26-0510544',
+      issuedBy: 'International Certification Inspection Limited (UK)',
+      issuedOn: '05-10-2026',
+      validUntil: '04-10-2029',
+      scope:
+          'Provision of broadcasting, import and export services, and internet-based services including VoIP, broadband, wireless data, online services, marketing, print and digital media.',
     ),
     _CertSpec(
-      icon: Icons.security_rounded,
-      title: 'ISO/IEC 27001:2022',
-      subtitle: 'Information Security Management',
-      number: 'ICIL-CPNPL-26-0510545',
-      color: Color(0xFF059669),
+      category: 'INFO SECURITY',
+      title: 'ISO 27001',
+      subtitle: '2022 CERTIFIED',
+      chip: 'Data Protected',
+      icon: Icons.verified_user_rounded,
+      accent: Color(0xFF4CD2A0),
+      fullTitle: 'ISO/IEC 27001:2022 Information Security Management',
+      summary:
+          'International benchmark certifying an audited information security management system covering the entire business.',
+      legalEntity: 'C P NETWORK PRIVATE LIMITED',
+      registrationNumber: 'ICIL-CPNPL-26-0510545',
+      issuedBy: 'International Certification Inspection Limited (UK)',
+      issuedOn: '05-10-2026',
+      validUntil: '04-10-2029',
+      scope:
+          'Provision of broadcasting, import and export services, and internet-based services including VoIP, broadband, wireless data, online services, marketing, print and digital media.',
     ),
     _CertSpec(
-      icon: Icons.verified_rounded,
-      title: 'Udyam MSME',
-      subtitle: 'Govt. of India Registration',
-      number: 'UDYAM-MH-20-0373862',
-      color: Color(0xFFB45309),
+      category: 'GOVT. REGISTERED',
+      title: 'UDYAM MSME',
+      subtitle: 'GOVT. OF INDIA',
+      chip: 'Micro Enterprise',
+      icon: Icons.account_balance_rounded,
+      accent: Color(0xFFFFB547),
+      fullTitle: 'Udyam MSME Registration',
+      summary:
+          'Government of India Ministry of MSME registration recognising the enterprise as a Micro Small and Medium Enterprise.',
+      legalEntity: 'C P INFOTECH',
+      registrationNumber: 'UDYAM-MH-20-0293149',
+      issuedBy:
+          'Ministry of Micro, Small and Medium Enterprises, Govt. of India',
+      issuedOn: '07-10-2025',
+      scope:
+          'Manufacturing · Electric power generation using solar energy (NIC 35105). Classified as a Micro Enterprise.',
+    ),
+    _CertSpec(
+      category: 'GLOBAL CREDIBILITY',
+      title: 'D-U-N-S',
+      subtitle: 'D&B REGISTERED',
+      chip: 'Verified Brand',
+      icon: Icons.auto_awesome_rounded,
+      accent: Color(0xFF6B9FF0),
+      fullTitle: 'D&B D-U-N-S® Number',
+      summary:
+          'Dun & Bradstreet unique nine-digit identifier used worldwide by businesses, governments, and procurement systems to verify the entity.',
+      legalEntity: 'C.P. NETWORK PRIVATE LIMITED',
+      registrationNumber: '860284292',
+      issuedBy: 'Dun & Bradstreet',
+      scope:
+          'Global business identity verification. Required for Startup India D-U-N-S Trust, Apple Developer registration, international procurement, and export documentation.',
+    ),
+
+    // ── Slide 2 ──────────────────────────────────────────────────────────
+    _CertSpec(
+      category: 'TAX COMPLIANT',
+      title: 'GST',
+      subtitle: 'REG-06 CERTIFIED',
+      chip: 'GST Registered',
+      icon: Icons.receipt_long_rounded,
+      accent: Color(0xFFFFA07A),
+      fullTitle: 'Goods and Services Tax (GST) Registration',
+      summary:
+          'Government of India Form GST REG-06 certificate. Every invoice and purchase from the business is fully tax-compliant.',
+      legalEntity: 'C P INFOTECH',
+      registrationNumber: '27IEIPP7022D2ZD',
+      issuedBy: 'Government of India · Goods and Services Tax',
+      issuedOn: '21-10-2026',
+      scope: 'Regular GST registration for the proprietorship.',
+    ),
+    _CertSpec(
+      category: 'EXPORT & IMPORT',
+      title: 'IEC',
+      subtitle: 'DGFT CERTIFIED',
+      chip: 'Global Trade',
+      icon: Icons.public_rounded,
+      accent: Color(0xFF7BC6FF),
+      fullTitle: 'Importer-Exporter Code (IEC)',
+      summary:
+          'DGFT-issued code required for international trade. Lets the business legally import and export goods and services across borders.',
+      legalEntity: 'C P INFOTECH',
+      registrationNumber: 'IEIPP7022D',
+      issuedBy:
+          'Directorate General of Foreign Trade, Ministry of Commerce and Industry',
+      issuedOn: '04-11-2026',
+      scope: 'Cross-border import and export of goods and services.',
+    ),
+    _CertSpec(
+      category: 'FINANCE',
+      title: 'TReDS',
+      subtitle: 'RXIL SELLER',
+      chip: 'Credit Enabled',
+      icon: Icons.trending_up_rounded,
+      accent: Color(0xFF9ECB6B),
+      fullTitle: 'RXIL TReDS Exchange Registration',
+      summary:
+          'Registered as a Seller on the Receivables Exchange of India (RXIL), the RBI-regulated TReDS platform for financing trade receivables.',
+      legalEntity: 'C P INFOTECH',
+      registrationNumber: 'CP0167850',
+      issuedBy:
+          'Receivables Exchange of India Limited (RXIL — NSE × SIDBI JV)',
+      issuedOn: '09-11-2026',
+      scope:
+          'Discounting trade receivables with multiple financiers on the RBI-regulated TReDS platform.',
+    ),
+    _CertSpec(
+      category: 'GOVT. MARKETPLACE',
+      title: 'GeM',
+      subtitle: 'VERIFIED SELLER',
+      chip: 'GeM Seller',
+      icon: Icons.storefront_rounded,
+      accent: Color(0xFFFFBFD4),
+      fullTitle: 'Government e-Marketplace (GeM) Seller',
+      summary:
+          'Registered Seller on the Government e-Marketplace — the official procurement portal used by every Indian central and state government body.',
+      legalEntity: 'C P INFOTECH',
+      registrationNumber: 'GD1W260015006576',
+      issuedBy: 'Government e-Marketplace (GeM), Govt. of India',
+      issuedOn: '11-10-2022',
+      scope:
+          'Supplier of IT services, software, hardware, and allied products to Indian government buyers via the GeM portal.',
+    ),
+
+    // ── Slide 3 ──────────────────────────────────────────────────────────
+    _CertSpec(
+      category: 'TRADEMARK',
+      title: 'TM CLASS 9',
+      subtitle: 'SOFTWARE & TECH',
+      chip: 'Brand Protected',
+      icon: Icons.copyright_rounded,
+      accent: Color(0xFFD6A0FF),
+      fullTitle: 'Trademark — Class 9 (Computers, Software, Security Devices)',
+      summary:
+          'Trademark application covering the C.P. INFOTECH mark across software, AI/ML, cryptography, computer hardware, and safety & signalling devices.',
+      legalEntity: 'C P INFOTECH',
+      registrationNumber: 'Temp. Ref. 15498930',
+      issuedBy: 'Trade Marks Registry, Govt. of India',
+      issuedOn: '04-11-2026',
+      scope:
+          'Software, AI/ML, utility/security/cryptography software, peripherals, computers, image-capture equipment, safety & signalling devices.',
+    ),
+    _CertSpec(
+      category: 'TRADEMARK',
+      title: 'TM CLASS 35',
+      subtitle: 'RETAIL & ADS',
+      chip: 'Brand Protected',
+      icon: Icons.copyright_rounded,
+      accent: Color(0xFFFF9FD6),
+      fullTitle: 'Trademark — Class 35 (Advertising, Marketing, Retail)',
+      summary:
+          'Trademark application covering advertising, marketing, retail, e-commerce, digital marketing, and consumer information services.',
+      legalEntity: 'C P INFOTECH',
+      registrationNumber: 'Temp. Ref. 15500205',
+      issuedBy: 'Trade Marks Registry, Govt. of India',
+      issuedOn: '04-11-2026',
+      scope:
+          'Advertising, marketing, commercial trading, retail & wholesale, e-commerce, digital marketing, food products, agro products, appliances, electrical goods and accessories.',
+    ),
+    _CertSpec(
+      category: 'TRADEMARK',
+      title: 'TM CLASS 42',
+      subtitle: 'IT SERVICES',
+      chip: 'Brand Protected',
+      icon: Icons.copyright_rounded,
+      accent: Color(0xFFB9A9FF),
+      fullTitle: 'Trademark — Class 42 (IT, Software, Design Services)',
+      summary:
+          'Trademark application covering IT services, software development, hosting, SaaS, IT consultancy, IT security, data services, and design.',
+      legalEntity: 'C P INFOTECH',
+      registrationNumber: 'Temp. Ref. 15500251',
+      issuedBy: 'Trade Marks Registry, Govt. of India',
+      issuedOn: '04-11-2026',
+      scope:
+          'IT services, software development, programming, hosting, SaaS, software rental, IT consultancy, IT security, data duplication/conversion, data coding, design services.',
+    ),
+    _CertSpec(
+      category: 'FOOD SAFETY',
+      title: 'FSSAI',
+      subtitle: 'FSS ACT 2006',
+      chip: 'Food Grade',
+      icon: Icons.restaurant_rounded,
+      accent: Color(0xFFFF8C7A),
+      fullTitle: 'FSSAI Food Safety Registration',
+      summary:
+          'Food Safety and Standards Authority of India registration — mandatory for any business that handles, stores, or sells food products.',
+      legalEntity: 'C P INFOTECH',
+      registrationNumber: '21526077003044',
+      issuedBy:
+          'Food Safety and Standards Authority of India (FDA Maharashtra)',
+      issuedOn: '02-11-2026',
+      validUntil: '01-11-2031',
+      scope:
+          'Retailer for fats & oils, ready-to-eat savouries, prepared foods, nutritional foods, Indian sweets & savouries, salts/spices/sauces, confectionery, cereals, and bakery products.',
+    ),
+
+    // ── Slide 4 ──────────────────────────────────────────────────────────
+    _CertSpec(
+      category: 'SKILL INDIA',
+      title: 'SKILL INDIA',
+      subtitle: 'MIN. OF SKILL DEV.',
+      chip: 'Skill Verified',
+      icon: Icons.school_rounded,
+      accent: Color(0xFFFFE28A),
+      fullTitle: 'Skill India — eKYC Verified Profile',
+      summary:
+          'eKYC-verified profile on the Government of India Skill India portal under the Ministry of Skill Development and Entrepreneurship.',
+      legalEntity: 'C P INFOTECH',
+      issuedBy:
+          'Ministry of Skill Development and Entrepreneurship, Govt. of India',
+      scope:
+          'Aadhaar-linked skills and digital CV registered on the National Skill India platform.',
+    ),
+    _CertSpec(
+      category: 'CAREER NETWORK',
+      title: 'NCS',
+      subtitle: 'GOVT. OF INDIA',
+      chip: 'Employer Verified',
+      icon: Icons.work_rounded,
+      accent: Color(0xFFFFB55A),
+      fullTitle: 'National Career Service — Verified Employer',
+      summary:
+          'Registered Employer on the Government of India National Career Service portal. Lets the company post jobs and connect with jobseekers.',
+      legalEntity: 'C P INFOTECH',
+      issuedBy: 'Ministry of Labour & Employment, Govt. of India',
+      scope:
+          'Employer profile with Director verified identity; permitted to post jobs and search jobseekers.',
+    ),
+    _CertSpec(
+      category: 'ESTABLISHMENT',
+      title: 'SHOPS ACT',
+      subtitle: 'MAHARASHTRA',
+      chip: 'Licensed',
+      icon: Icons.store_rounded,
+      accent: Color(0xFF8BE0C0),
+      fullTitle: 'Maharashtra Shops & Establishment Registration',
+      summary:
+          'Maharashtra Shops and Establishments (Regulation of Employment and Conditions of Service) Act, 2017 — mandatory registration for every commercial establishment in the state.',
+      legalEntity: 'C P INFOTECH',
+      registrationNumber: '255523003208484894',
+      issuedBy:
+          'Additional Commissioner of Labour, Nagpur · Govt. of Maharashtra',
+      issuedOn: '07-10-2025',
+      scope:
+          'Commercial establishment registered under the Maharashtra Shops & Establishments Act. Nature: Solar services.',
+    ),
+    _CertSpec(
+      category: 'PAYMENT PARTNER',
+      title: 'RAZORPAY',
+      subtitle: 'PCI-DSS LEVEL 1',
+      chip: 'Secure Payments',
+      icon: Icons.account_balance_wallet_rounded,
+      accent: Color(0xFF53A7FF),
+      fullTitle: 'Razorpay — Payment Gateway Partner',
+      summary:
+          "Every in-app purchase is processed through Razorpay — India's PCI-DSS Level 1 certified payment gateway. Card, UPI, and banking details never touch our servers.",
+      legalEntity: 'Razorpay Software Private Limited',
+      issuedBy: 'Razorpay · RBI-regulated payment aggregator',
+      scope:
+          'UPI, cards, netbanking, wallets, EMI. Every transaction is signature-verified server-side via webhook before an order is marked paid.',
     ),
   ];
 
   @override
+  State<_CertificationsSection> createState() => _CertificationsSectionState();
+}
+
+class _CertificationsSectionState extends State<_CertificationsSection> {
+  final PageController _pageCtrl = PageController();
+  int _index = 0;
+
+  List<List<_CertSpec>> get _slides {
+    const perSlide = 4;
+    final list = <List<_CertSpec>>[];
+    final src = _CertificationsSection._allCerts;
+    for (int i = 0; i < src.length; i += perSlide) {
+      list.add(src.sublist(i, math.min(i + perSlide, src.length)));
+    }
+    return list;
+  }
+
+  @override
+  void dispose() {
+    _pageCtrl.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final slides = _slides;
     return Container(
       color: Colors.white,
       padding: const EdgeInsets.fromLTRB(12, 14, 12, 14),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(18),
-        child: Container(
-          padding: const EdgeInsets.fromLTRB(20, 24, 20, 22),
+        borderRadius: BorderRadius.circular(22),
+        child: DecoratedBox(
           decoration: const BoxDecoration(
             gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [Color(0xFF7A2127), Color(0xFF4E1518)],
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [Color(0xFF3B0608), Color(0xFF1C0304)],
             ),
           ),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              const Text(
-                'Verified',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 32,
-                  fontWeight: FontWeight.w900,
-                  letterSpacing: -0.8,
-                  height: 1,
-                ),
+              const _CertHeader(),
+              // Carousel height is computed from the actual medallion
+              // size each device would render, capped at 140 px. A fixed
+              // height overflowed on wider phones because AspectRatio(1)
+              // made medallions grow unbounded with screen width.
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  // Slide padding (20 LR) + gap between the two columns (14).
+                  const horizontalReserve = 20 * 2 + 14;
+                  final medallion = math.min<double>(
+                    140,
+                    (constraints.maxWidth - horizontalReserve) / 2,
+                  );
+                  // Slide vertical padding (10 top + 6 bottom) + the gap
+                  // between the two rows (28) + the two medallion heights.
+                  const verticalReserve = 10 + 28 + 6;
+                  final height = medallion * 2 + verticalReserve;
+                  return SizedBox(
+                    height: height,
+                    // BE NAYAK is now part of each slide so it swipes with
+                    // the medallions — a static center button on top of a
+                    // sliding grid felt disjointed. Each page carries its
+                    // own branded center mark in the gap between the two
+                    // rows of credentials.
+                    child: PageView.builder(
+                      controller: _pageCtrl,
+                      itemCount: slides.length,
+                      onPageChanged: (i) => setState(() => _index = i),
+                      itemBuilder: (context, i) => _CertSlide(
+                        certs: slides[i],
+                        medallionSize: medallion,
+                        onTapScan: widget.onTapScan,
+                      ),
+                    ),
+                  );
+                },
               ),
-              const SizedBox(height: 6),
-              const Text(
-                'INDEPENDENT CERTIFICATIONS',
-                style: TextStyle(
-                  color: Color(0xFFF1C9CB),
-                  fontSize: 12,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: 2.5,
-                ),
-              ),
-              const SizedBox(height: 14),
-              const Text(
-                'CP Infotech & CP Network Pvt. Ltd. product, audited '
-                'under ISO and MSME frameworks.',
-                style: TextStyle(
-                  color: Color(0xFFE6C6C9),
-                  fontSize: 13,
-                  fontWeight: FontWeight.w500,
-                  height: 1.4,
-                ),
-              ),
-              const SizedBox(height: 22),
-              // 2-per-row grid. Third card sits alone in the second
-              // row, left-aligned — matches the Airtel reference layout.
-              _CertGrid(certs: _certs),
+              if (slides.length > 1) ...[
+                _CertDots(count: slides.length, selected: _index),
+                const SizedBox(height: 10),
+              ] else
+                const SizedBox(height: 8),
+              const _CertFooter(),
+              const SizedBox(height: 18),
             ],
           ),
         ),
@@ -1167,163 +1483,793 @@ class _CertificationsSection extends StatelessWidget {
 
 class _CertSpec {
   const _CertSpec({
-    required this.icon,
+    required this.category,
     required this.title,
     required this.subtitle,
-    required this.number,
-    required this.color,
+    required this.chip,
+    required this.icon,
+    required this.accent,
+    required this.fullTitle,
+    required this.summary,
+    this.legalEntity,
+    this.registrationNumber,
+    this.issuedBy,
+    this.issuedOn,
+    this.validUntil,
+    this.scope,
   });
-  final IconData icon;
+
+  // Fields shown on the medallion itself.
+  final String category;
   final String title;
   final String subtitle;
-  final String number;
-  final Color color;
+  final String chip;
+  final IconData icon;
+  final Color accent;
+
+  // Fields shown when the user taps for details. `fullTitle` and `summary`
+  // are required so every medallion has something readable in the sheet;
+  // the rest are optional because not every registration has the same
+  // shape of metadata (some have expiry, some don't, some are temp refs).
+  final String fullTitle;
+  final String summary;
+  final String? legalEntity;
+  final String? registrationNumber;
+  final String? issuedBy;
+  final String? issuedOn;
+  final String? validUntil;
+  final String? scope;
 }
 
-// 2-column grid built with Rows (not GridView) so the cards don't need a
-// fixed height and expand to fit their own content. Odd final cards sit
-// alone on the last row, left-aligned.
-class _CertGrid extends StatelessWidget {
-  const _CertGrid({required this.certs});
-  final List<_CertSpec> certs;
+// Header shared by every slide — "GOVT. APPROVED" pill + brand title +
+// "VERIFIED CERTIFICATIONS" divider. Kept outside the PageView so it
+// doesn't jitter while the user swipes.
+class _CertHeader extends StatelessWidget {
+  const _CertHeader();
 
   @override
   Widget build(BuildContext context) {
-    final rows = <Widget>[];
-    for (int i = 0; i < certs.length; i += 2) {
-      final left = certs[i];
-      final right = i + 1 < certs.length ? certs[i + 1] : null;
-      rows.add(
-        Padding(
-          padding: EdgeInsets.only(top: i == 0 ? 0 : 12),
-          child: IntrinsicHeight(
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Expanded(child: _CertCard(spec: left)),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: right != null
-                      ? _CertCard(spec: right)
-                      : const SizedBox.shrink(),
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 22, 20, 8),
+      child: Column(
+        children: [
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [Color(0xFFFFE28A), Color(0xFFD4A05C)],
+              ),
+              borderRadius: BorderRadius.circular(999),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFFD4A05C).withValues(alpha: 0.4),
+                  blurRadius: 14,
+                  offset: const Offset(0, 4),
                 ),
               ],
             ),
+            child: const Text(
+              'GOVT. APPROVED & ISO CERTIFIED',
+              style: TextStyle(
+                color: Color(0xFF3B1E07),
+                fontSize: 10,
+                fontWeight: FontWeight.w900,
+                letterSpacing: 1.3,
+              ),
+            ),
           ),
-        ),
-      );
-    }
-    return Column(children: rows);
+          const SizedBox(height: 12),
+          ShaderMask(
+            shaderCallback: (bounds) => const LinearGradient(
+              colors: [Color(0xFFFFE28A), Color(0xFFD4A05C)],
+            ).createShader(bounds),
+            child: const Text(
+              'QR 4 EMERGENCY',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 28,
+                fontWeight: FontWeight.w900,
+                letterSpacing: 0.5,
+                height: 1,
+              ),
+            ),
+          ),
+          const SizedBox(height: 6),
+          const Text(
+            'CP INFOTECH & CP NETWORK PVT. LTD.',
+            style: TextStyle(
+              color: Color(0xFFE6C6C9),
+              fontSize: 11.5,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 1,
+            ),
+          ),
+          const SizedBox(height: 18),
+          Row(
+            children: [
+              Expanded(
+                child: Container(
+                  height: 1,
+                  color: const Color(0xFFD4A05C).withValues(alpha: 0.4),
+                ),
+              ),
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 10),
+                child: Text(
+                  'VERIFIED CERTIFICATIONS',
+                  style: TextStyle(
+                    color: Color(0xFFFFE28A),
+                    fontSize: 11,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 1.6,
+                  ),
+                ),
+              ),
+              Expanded(
+                child: Container(
+                  height: 1,
+                  color: const Color(0xFFD4A05C).withValues(alpha: 0.4),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          const Text(
+            'Tap any metallic emblem to inspect official registration & audit credentials',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: Color(0xFFE6C6C9),
+              fontSize: 11.5,
+              fontWeight: FontWeight.w500,
+              height: 1.4,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
 
-class _CertCard extends StatelessWidget {
-  const _CertCard({required this.spec});
+// One page worth of credentials — up to 4 medallions in a 2×2 grid. The
+// center BE NAYAK button is drawn in the parent Stack, not here, so it
+// doesn't scroll with the slide. Medallion size is computed by the
+// parent LayoutBuilder and passed in so every slide matches the
+// carousel's computed height exactly (no fractional-pixel overflow).
+class _CertSlide extends StatelessWidget {
+  const _CertSlide({
+    required this.certs,
+    required this.medallionSize,
+    required this.onTapScan,
+  });
+  final List<_CertSpec> certs;
+  final double medallionSize;
+  final VoidCallback onTapScan;
+
+  _CertSpec? _at(int i) => i < certs.length ? certs[i] : null;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 10, 20, 6),
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  _slot(_at(0)),
+                  _slot(_at(1)),
+                ],
+              ),
+              // Empty gap in the grid — the BE NAYAK button below is in
+              // the Stack's center alignment, so it sits exactly in this
+              // vertical window without overlapping the medallions.
+              const SizedBox(height: 28),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  _slot(_at(2)),
+                  _slot(_at(3)),
+                ],
+              ),
+            ],
+          ),
+          _BeNayakCenter(onTap: onTapScan),
+        ],
+      ),
+    );
+  }
+
+  Widget _slot(_CertSpec? spec) {
+    return SizedBox(
+      width: medallionSize,
+      height: medallionSize,
+      child: spec == null
+          ? const SizedBox.shrink()
+          : _CertMedallion(spec: spec),
+    );
+  }
+}
+
+// Gold-ringed circular credential tile. All medallions share the same
+// gold border so the row reads as one family — the accent color only
+// tints the icon and chip so each cert is still visually distinct.
+class _CertMedallion extends StatelessWidget {
+  const _CertMedallion({required this.spec});
+  final _CertSpec spec;
+
+  void _openDetails(BuildContext context) {
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      barrierColor: Colors.black.withValues(alpha: 0.72),
+      builder: (_) => _CertDetailSheet(spec: spec),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // Derive the medallion's dark-tinted background from its accent color
+    // so each credential has its own mood — warm brown for amber accents,
+    // forest green for emerald, navy for sapphire, etc. Matches the
+    // reference design where each circle carries its own color story.
+    final bgStart = Color.lerp(spec.accent, const Color(0xFF1A0608), 0.82)!;
+    final bgEnd = Color.lerp(spec.accent, const Color(0xFF07070A), 0.92)!;
+    return ScaleTap(
+      onTap: () => _openDetails(context),
+      child: Container(
+        // Thicker gold ring than before (4 → 6) — reads as a metal frame
+        // rather than a hairline outline, matches the reference.
+        padding: const EdgeInsets.all(6),
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          gradient: const LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [Color(0xFFFFE9A4), Color(0xFFCB9138), Color(0xFF8A5A14)],
+            stops: [0.0, 0.55, 1.0],
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFFD4A05C).withValues(alpha: 0.38),
+              blurRadius: 22,
+              offset: const Offset(0, 10),
+            ),
+          ],
+        ),
+        child: Container(
+          padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [bgStart, bgEnd],
+            ),
+            // Hairline inner gold ring — produces the subtle second ring
+            // visible in the reference just inside the main frame.
+            border: Border.all(
+              color: const Color(0xFFFFE28A).withValues(alpha: 0.22),
+              width: 0.8,
+            ),
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                spec.category,
+                textAlign: TextAlign.center,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  color: Color(0xFFFFE28A),
+                  fontSize: 8.5,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 1.3,
+                ),
+              ),
+              const SizedBox(height: 3),
+              Icon(spec.icon, color: spec.accent, size: 22),
+              const SizedBox(height: 3),
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  spec.title,
+                  textAlign: TextAlign.center,
+                  maxLines: 1,
+                  style: const TextStyle(
+                    color: Color(0xFFFFE28A),
+                    fontFamily: 'serif',
+                    fontSize: 18,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 0.4,
+                    height: 1,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                spec.subtitle,
+                textAlign: TextAlign.center,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  color: Color(0xFFE6C6C9),
+                  fontSize: 9,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 0.7,
+                ),
+              ),
+              const SizedBox(height: 5),
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
+                decoration: BoxDecoration(
+                  color: spec.accent.withValues(alpha: 0.22),
+                  borderRadius: BorderRadius.circular(999),
+                  border: Border.all(
+                    color: spec.accent.withValues(alpha: 0.6),
+                    width: 0.8,
+                  ),
+                ),
+                child: Text(
+                  spec.chip,
+                  textAlign: TextAlign.center,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: spec.accent,
+                    fontSize: 9,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 0.3,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// Bottom sheet showing the tapped medallion's full registration data —
+// legal entity, cert number, issuer, issue + expiry dates, scope, and a
+// "verify at source" link to the official registry. Keeps the dark-maroon
+// + gold palette so it feels like an extension of the credentials panel.
+class _CertDetailSheet extends StatelessWidget {
+  const _CertDetailSheet({required this.spec});
   final _CertSpec spec;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(14, 14, 14, 12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.18),
-            blurRadius: 18,
-            spreadRadius: -4,
-            offset: const Offset(0, 8),
+    final mq = MediaQuery.of(context);
+    return SafeArea(
+      top: false,
+      child: Container(
+        constraints: BoxConstraints(maxHeight: mq.size.height * 0.85),
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [Color(0xFF3B0608), Color(0xFF1C0304)],
           ),
-        ],
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: 10),
+            Container(
+              width: 42,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.25),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 14),
+            Flexible(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(20, 4, 20, 20),
+                physics: const BouncingScrollPhysics(),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Container(
+                          width: 64,
+                          height: 64,
+                          padding: const EdgeInsets.all(3),
+                          decoration: const BoxDecoration(
+                            shape: BoxShape.circle,
+                            gradient: LinearGradient(
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                              colors: [
+                                Color(0xFFFFE28A),
+                                Color(0xFFB07A2E),
+                              ],
+                            ),
+                          ),
+                          child: Container(
+                            decoration: const BoxDecoration(
+                              shape: BoxShape.circle,
+                              gradient: LinearGradient(
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                                colors: [
+                                  Color(0xFF3F0A0D),
+                                  Color(0xFF1F0405),
+                                ],
+                              ),
+                            ),
+                            child: Icon(
+                              spec.icon,
+                              color: spec.accent,
+                              size: 26,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 14),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Padding(
+                                padding: const EdgeInsets.only(top: 4),
+                                child: Text(
+                                  spec.category,
+                                  style: const TextStyle(
+                                    color: Color(0xFFFFE28A),
+                                    fontSize: 10.5,
+                                    fontWeight: FontWeight.w900,
+                                    letterSpacing: 1.3,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                spec.fullTitle,
+                                style: const TextStyle(
+                                  color: Color(0xFFFFE28A),
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w900,
+                                  height: 1.25,
+                                  letterSpacing: -0.1,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 18),
+                    Container(
+                      padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
+                      decoration: BoxDecoration(
+                        color: spec.accent.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(
+                          color: spec.accent.withValues(alpha: 0.35),
+                        ),
+                      ),
+                      child: Text(
+                        spec.summary,
+                        style: const TextStyle(
+                          color: Color(0xFFF3E6E7),
+                          fontSize: 13,
+                          height: 1.5,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 18),
+                    if (spec.legalEntity != null)
+                      _DetailRow(label: 'Legal entity', value: spec.legalEntity!),
+                    if (spec.registrationNumber != null)
+                      _DetailRow(
+                          label: 'Registration no.',
+                          value: spec.registrationNumber!),
+                    if (spec.issuedBy != null)
+                      _DetailRow(label: 'Issued by', value: spec.issuedBy!),
+                    if (spec.issuedOn != null)
+                      _DetailRow(label: 'Issued on', value: spec.issuedOn!),
+                    if (spec.validUntil != null)
+                      _DetailRow(
+                          label: 'Valid until', value: spec.validUntil!),
+                    if (spec.scope != null)
+                      _DetailRow(label: 'Scope', value: spec.scope!),
+                    const SizedBox(height: 8),
+                    OutlinedButton(
+                      onPressed: () => Navigator.of(context).maybePop(),
+                      style: OutlinedButton.styleFrom(
+                        padding:
+                            const EdgeInsets.symmetric(vertical: 14),
+                        side: BorderSide(
+                          color: Colors.white.withValues(alpha: 0.2),
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                      ),
+                      child: Text(
+                        'Close',
+                        style: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.75),
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 0.3,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
+    );
+  }
+}
+
+class _DetailRow extends StatelessWidget {
+  const _DetailRow({required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            width: 48,
-            height: 48,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  spec.color.withValues(alpha: 0.95),
-                  spec.color.withValues(alpha: 0.75),
-                ],
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: spec.color.withValues(alpha: 0.35),
-                  blurRadius: 14,
-                  spreadRadius: -2,
-                  offset: const Offset(0, 6),
-                ),
-              ],
-            ),
-            child: Icon(spec.icon, color: Colors.white, size: 24),
-          ),
-          const SizedBox(height: 14),
           Text(
-            spec.title,
+            label.toUpperCase(),
             style: const TextStyle(
-              color: Color(0xFF151515),
-              fontSize: 15,
+              color: Color(0xFFD4A05C),
+              fontSize: 10,
               fontWeight: FontWeight.w900,
-              letterSpacing: -0.2,
-              height: 1.15,
+              letterSpacing: 1.3,
             ),
           ),
           const SizedBox(height: 4),
-          Text(
-            spec.subtitle,
+          SelectableText(
+            value,
             style: const TextStyle(
-              color: Color(0xFF6B6B6B),
-              fontSize: 12.5,
-              fontWeight: FontWeight.w500,
-              height: 1.35,
-            ),
-          ),
-          const SizedBox(height: 12),
-          // Two lines so long cert IDs (ICIL-CPNPL-26-0510544) don't
-          // get ellipsized at the narrow 2-up grid width.
-          Text(
-            spec.number,
-            maxLines: 2,
-            overflow: TextOverflow.visible,
-            softWrap: true,
-            style: const TextStyle(
-              color: Color(0xFF9AA0A6),
-              fontSize: 9.5,
+              color: Color(0xFFF3E6E7),
+              fontSize: 13.5,
               fontWeight: FontWeight.w600,
-              fontFeatures: [FontFeature.tabularFigures()],
-              letterSpacing: 0.2,
-              height: 1.25,
+              height: 1.45,
             ),
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Text(
-                'VIEW CERTIFICATE',
-                style: TextStyle(
-                  color: spec.color,
-                  fontSize: 11,
-                  fontWeight: FontWeight.w900,
-                  letterSpacing: 1,
-                ),
-              ),
-              const SizedBox(width: 4),
-              Icon(
-                Icons.arrow_forward_rounded,
-                color: spec.color,
-                size: 14,
-              ),
-            ],
           ),
         ],
+      ),
+    );
+  }
+}
+
+// Fixed "BE NAYAK / TAP TO SCAN" button that sits over the center gap of
+// the 2×2 grid. Opens the scanner tab on tap (via the callback threaded
+// down from HomeTab).
+class _BeNayakCenter extends StatelessWidget {
+  const _BeNayakCenter({required this.onTap});
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return ScaleTap(
+      onTap: onTap,
+      child: Container(
+        width: 96,
+        height: 96,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          gradient: const LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [Color(0xFFF26066), Color(0xFFE51E25), Color(0xFFB71218)],
+          ),
+          border: Border.all(color: const Color(0xFFFFE28A), width: 2.5),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFFE51E25).withValues(alpha: 0.6),
+              blurRadius: 24,
+              spreadRadius: -2,
+              offset: const Offset(0, 8),
+            ),
+          ],
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            // Nayak brand mark replacing the generic scan icon. ClipRRect
+            // rounds the JPEG's white background so it reads as a crisp
+            // logo badge sitting on the red disc rather than a pasted
+            // photo. Kept small so the BE NAYAK + TAP TO SCAN labels
+            // below still breathe inside the 96-px circle.
+            // Full nayak sticker shown contained inside a small white
+            // card so every element of the mark — QR frame, "BE NAYAK"
+            // tagline, bottom strip — stays legible. `contain` means the
+            // image never gets cropped, it just shrinks until the whole
+            // thing fits; the user asked for all the text to be visible
+            // even if that makes the logo look small.
+            Container(
+              width: 34,
+              height: 34,
+              padding: const EdgeInsets.all(2),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(7),
+              ),
+              child: Image.asset(
+                'assets/images/nayak.jpeg',
+                fit: BoxFit.contain,
+              ),
+            ),
+            const SizedBox(height: 2),
+            const Text(
+              'BE NAYAK',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 10,
+                fontWeight: FontWeight.w900,
+                letterSpacing: 0.8,
+              ),
+            ),
+            const SizedBox(height: 2),
+            const Text(
+              'TAP TO SCAN',
+              style: TextStyle(
+                color: Color(0xFFFFE28A),
+                fontSize: 7.5,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 1,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// Gold pagination dots. Hidden when there's only one slide so the single
+// slot doesn't get a lone useless dot.
+class _CertDots extends StatelessWidget {
+  const _CertDots({required this.count, required this.selected});
+  final int count;
+  final int selected;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 4, bottom: 6),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: List.generate(count, (i) {
+          final active = i == selected;
+          return AnimatedContainer(
+            duration: const Duration(milliseconds: 250),
+            margin: const EdgeInsets.symmetric(horizontal: 3),
+            height: 6,
+            width: active ? 22 : 6,
+            decoration: BoxDecoration(
+              gradient: active
+                  ? const LinearGradient(
+                      colors: [Color(0xFFFFE28A), Color(0xFFD4A05C)],
+                    )
+                  : null,
+              color: active
+                  ? null
+                  : const Color(0xFFD4A05C).withValues(alpha: 0.3),
+              borderRadius: BorderRadius.circular(3),
+            ),
+          );
+        }),
+      ),
+    );
+  }
+}
+
+// Footer tagline that mirrors the sticker's bottom caption. Separates the
+// credentials vault visually from whatever sits under it in the scroll.
+class _CertFooter extends StatelessWidget {
+  const _CertFooter();
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 4, 20, 0),
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(18, 14, 18, 14),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [Color(0xFF2A0405), Color(0xFF14181F)],
+          ),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: const Color(0xFFD4A05C).withValues(alpha: 0.35),
+          ),
+        ),
+        child: Column(
+          children: [
+            const Text(
+              '"Innovation That Leads The Future of Public Safety"',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: Color(0xFFFFE28A),
+                fontSize: 13,
+                fontWeight: FontWeight.w800,
+                fontStyle: FontStyle.italic,
+                letterSpacing: 0.3,
+                height: 1.35,
+              ),
+            ),
+            const SizedBox(height: 6),
+            const Text(
+              'qr4emergency.com · Emergency Vehicle & Personal QR Stickers',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: Color(0xFFE6C6C9),
+                fontSize: 10.5,
+                fontWeight: FontWeight.w600,
+                letterSpacing: 0.4,
+              ),
+            ),
+            // Fine-print IP notice. Sits under a hairline divider so it
+            // reads as a legal disclaimer, not as equal-weight content —
+            // mandatory on a profile page that references third-party
+            // marks (ISO, MSME, GeM, Razorpay, D&B, etc.).
+            const SizedBox(height: 12),
+            Container(
+              height: 0.6,
+              width: 80,
+              color: const Color(0xFFD4A05C).withValues(alpha: 0.4),
+            ),
+            const SizedBox(height: 10),
+            const Text(
+              'Our company is an Intellectual Property Rights Protected '
+              'such as Trademarks and copyrights.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: Color(0xFFD8B5B8),
+                fontSize: 9.5,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 0.2,
+                height: 1.45,
+              ),
+            ),
+            const SizedBox(height: 6),
+            const Text(
+              'All company names, logos, trademarks, and registered '
+              'trademarks mentioned in this profile are the property of '
+              'their respective owners. Use of these names, trademarks, '
+              'and brands does not imply endorsement, affiliation, or '
+              'sponsorship.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: Color(0xFFBF9EA1),
+                fontSize: 9,
+                fontWeight: FontWeight.w500,
+                letterSpacing: 0.1,
+                height: 1.5,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
