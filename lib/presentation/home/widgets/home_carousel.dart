@@ -13,14 +13,12 @@ class _Slide {
     required this.imageUrl,
     required this.color,
     required this.gradient,
-    this.assetPath,
   });
 
   final String tag;
   final String title;
   final String subtitle;
   final String imageUrl;
-  final String? assetPath;
   final Color color;
   final List<Color> gradient;
 }
@@ -43,12 +41,11 @@ class _HomeCarouselState extends State<HomeCarousel> {
   static const Duration _autoPlayInterval = Duration(seconds: 5);
   bool _userIsScrolling = false;
 
-  // Slides shown now — starts as the hardcoded defaults so the carousel
-  // renders instantly on cold start, then gets swapped for the backend's
-  // list once GET /api/app/carousel returns. Falling back to defaults on
-  // network error means a flaky connection never leaves the home page
-  // staring at a blank slot.
-  List<_Slide> _slides = _defaultSlides;
+  // Slides come purely from the admin-managed carousel on the backend.
+  // We start empty — the parent hides the widget via the itemCount==0
+  // guard in build() until GET /api/app/carousel returns something, so
+  // users never see stale bundled stock photos.
+  List<_Slide> _slides = const [];
 
   @override
   void initState() {
@@ -127,88 +124,6 @@ class _HomeCarouselState extends State<HomeCarousel> {
     (Color(0xFF3B82F6), [Color(0xFF1E3A8A), Color(0xFF0F1626)]),
   ];
 
-  // Each slide pairs a caption with a topical image. Local assets win when
-  // present; otherwise a specific Unsplash CDN URL (not a random service) is
-  // used so the photo always matches the caption. These defaults are what
-  // the carousel shows on first paint and if the backend fetch fails.
-  static const List<_Slide> _defaultSlides = [
-    // Local-asset slide using img.jpeg from the assets folder. Added
-    // directly to defaults so it renders without any backend/Supabase
-    // dependency — assetPath takes precedence over imageUrl in
-    // _SlideBackground, so the Image.asset path is what actually paints.
-    _Slide(
-      tag: 'FEATURED',
-      title: 'QR 4 Emergency',
-      subtitle: 'Scan. Call. Help arrives faster.',
-      imageUrl: '',
-      assetPath: 'assets/images/img.jpeg',
-      color: Color(0xFFE51E25),
-      gradient: [Color(0xFFB71218), Color(0xFF0F1626)],
-    ),
-    _Slide(
-      tag: 'ACCIDENT EMERGENCY',
-      title: 'In a crash? Your family knows in seconds.',
-      subtitle:
-          'Any bystander can scan your QR and reach your trusted contacts — no number lookups, no delays.',
-      imageUrl:
-          'https://images.unsplash.com/photo-1713623311317-d3c43a4be4cf?w=900&q=80&auto=format&fit=crop',
-      assetPath: 'assets/images/accident.png',
-      color: Color(0xFFFF3B30),
-      gradient: [Color(0xFF8B0000), Color(0xFF0F1626)],
-    ),
-    _Slide(
-      tag: 'TRUSTED CONTACTS',
-      title: 'Five trusted contacts. One QR scan.',
-      subtitle:
-          'Instantly connect with your family, friends, or emergency contacts when every second matters.',
-      imageUrl:
-          'https://plus.unsplash.com/premium_photo-1745299853417-b13c4e281c31?w=900&q=80&auto=format&fit=crop',
-      color: Color(0xFF8B5CF6),
-      gradient: [Color(0xFF4C1D95), Color(0xFF0F1626)],
-    ),
-    _Slide(
-      tag: 'CALL MASKING',
-      title: 'They call you. Without ever seeing your number.',
-      subtitle:
-          'Every emergency call is bridged through our secure layer — your real phone number stays hidden, on both sides.',
-      imageUrl:
-          'https://plus.unsplash.com/premium_photo-1700592623848-91fc17d2592d?w=900&q=80&auto=format&fit=crop',
-      color: Color(0xFF14B8A6),
-      gradient: [Color(0xFF134E4A), Color(0xFF0F1626)],
-    ),
-    _Slide(
-      tag: 'WRONG PARKING',
-      title: "Blocked someone? They reach you privately.",
-      subtitle:
-          'No more notes under wipers. A quick scan triggers a masked call — your number stays private.',
-      imageUrl:
-          'https://images.unsplash.com/photo-1658260867231-535a1f7c98b9?w=900&q=80&auto=format&fit=crop',
-      assetPath: 'assets/images/no_parking.png',
-      color: Color(0xFFFFB547),
-      gradient: [Color(0xFF7A5210), Color(0xFF0F1626)],
-    ),
-    _Slide(
-      tag: 'SPAM PROTECTION',
-      title: 'See caller location. Block spam in one tap.',
-      subtitle:
-          'View where each scan happened, and block any number that calls you too often — right from the app.',
-      imageUrl:
-          'https://images.unsplash.com/photo-1526628953301-3e589a6a8b74?w=900&q=80&auto=format&fit=crop',
-      color: Color(0xFF10B981),
-      gradient: [Color(0xFF064E3B), Color(0xFF0F1626)],
-    ),
-    _Slide(
-      tag: 'ROAD SAFETY',
-      title: 'Drive easy. Help is one scan away.',
-      subtitle:
-          'Highways, late nights, long trips — you are never truly alone behind the wheel.',
-      imageUrl:
-          'https://images.unsplash.com/photo-1741122433084-002301210c13?w=900&q=80&auto=format&fit=crop',
-      color: Color(0xFF3B82F6),
-      gradient: [Color(0xFF1E3A8A), Color(0xFF0F1626)],
-    ),
-  ];
-
   @override
   void dispose() {
     _autoPlay?.cancel();
@@ -218,6 +133,10 @@ class _HomeCarouselState extends State<HomeCarousel> {
 
   @override
   Widget build(BuildContext context) {
+    // Nothing to show until admin uploads carousel slides — collapse the
+    // whole widget (parent _BannerCard renders as an empty strip, which
+    // the home scroll absorbs without a visible gap).
+    if (_slides.isEmpty) return const SizedBox.shrink();
     return Column(
       children: [
         SizedBox(
@@ -444,18 +363,6 @@ class _SlideBackground extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final asset = slide.assetPath;
-    if (asset != null) {
-      return Image.asset(
-        asset,
-        fit: BoxFit.cover,
-        gaplessPlayback: true,
-        errorBuilder: (context, error, stack) => _NetworkBg(
-          slide: slide,
-          showShieldOnError: showShieldOnError,
-        ),
-      );
-    }
     return _NetworkBg(slide: slide, showShieldOnError: showShieldOnError);
   }
 }
