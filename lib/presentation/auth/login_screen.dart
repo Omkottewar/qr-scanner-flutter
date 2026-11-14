@@ -126,14 +126,19 @@ class _LoginScreenState extends State<LoginScreen> {
                   ],
                 ),
                 child: ClipOval(
-                  child: Image.asset(
-                    'assets/images/nayak.jpeg',
-                    width: 88,
-                    height: 88,
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stack) => const Center(
-                      child: Icon(Icons.shield_rounded,
-                          color: Colors.white, size: 40),
+                  child: Padding(
+                    // Inset so the tall sticker image fits fully inside
+                    // the circle's inscribed square — otherwise the oval
+                    // curve clips header + footer even with BoxFit.contain.
+                    // ~15% of the 88-px diameter.
+                    padding: const EdgeInsets.all(13),
+                    child: Image.asset(
+                      'assets/images/nayak.jpeg',
+                      fit: BoxFit.contain,
+                      errorBuilder: (context, error, stack) => const Center(
+                        child: Icon(Icons.shield_rounded,
+                            color: Colors.white, size: 40),
+                      ),
                     ),
                   ),
                 ),

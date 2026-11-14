@@ -452,20 +452,23 @@ class _SideDrawer extends StatelessWidget {
                       ],
                     ),
                     child: ClipOval(
-                      child: Image.asset(
-                        'assets/images/nayak.jpeg',
-                        // contain (not cover) so the full sticker — "BE
-                        // NAYAK", QR frame, and taglines — is visible
-                        // inside the oval rather than cropping to just
-                        // the middle slice.
-                        fit: BoxFit.contain,
-                        errorBuilder: (_, _, _) => Container(
-                          decoration: const BoxDecoration(
-                            gradient: AppColors.brandGradient,
-                            shape: BoxShape.circle,
+                      child: Padding(
+                        // Inset so the tall sticker image fits inside the
+                        // circle's inscribed square — otherwise the oval's
+                        // top/bottom curve clips the sticker's header and
+                        // footer even with BoxFit.contain.
+                        padding: const EdgeInsets.all(8),
+                        child: Image.asset(
+                          'assets/images/nayak.jpeg',
+                          fit: BoxFit.contain,
+                          errorBuilder: (_, _, _) => Container(
+                            decoration: const BoxDecoration(
+                              gradient: AppColors.brandGradient,
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(Icons.shield_rounded,
+                                color: Colors.white, size: 22),
                           ),
-                          child: const Icon(Icons.shield_rounded,
-                              color: Colors.white, size: 22),
                         ),
                       ),
                     ),

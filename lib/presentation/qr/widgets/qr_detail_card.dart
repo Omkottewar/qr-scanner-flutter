@@ -397,183 +397,145 @@ class _Body extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(14, 22, 14, 6),
+      padding: const EdgeInsets.fromLTRB(10, 22, 10, 6),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // ── L-bracket framed area — QR is inside the box, and the
-          //    vehicle number + "Extension Number" text sit ON the
-          //    top/bottom bracket lines. Each label has an opaque
-          //    white background so it visually breaks the black
-          //    bracket line running underneath. Matches backend's
-          //    text-on-line layout.
-          SizedBox(
-            width: 300,
-            height: 296,
-            child: Stack(
-              clipBehavior: Clip.none,
-              alignment: Alignment.center,
-              children: [
-                // QR image centred with 18px margin from each bracket edge.
-                Positioned(
-                  top: 18,
-                  left: (300 - 260) / 2,
-                  child: SizedBox(
-                    width: 260,
-                    height: 260,
-                    child: QrImageView(
-                      data: alertUrl,
-                      version: QrVersions.auto,
-                      size: 260,
-                      backgroundColor: Colors.white,
-                      eyeStyle: const QrEyeStyle(
-                        eyeShape: QrEyeShape.square,
-                        color: _kInk,
-                      ),
-                      dataModuleStyle: const QrDataModuleStyle(
-                        dataModuleShape: QrDataModuleShape.square,
-                        color: _kInk,
-                      ),
-                    ),
-                  ),
-                ),
-                // Brackets on top of QR, under the text.
-                const Positioned.fill(
-                  child: IgnorePointer(
-                    child: CustomPaint(painter: _BracketPainter()),
-                  ),
-                ),
-                // Vehicle number sits ON the top bracket line — white
-                // bg breaks the black line where the text renders.
-                if (showVehicle)
-                  Positioned(
-                    top: -14,
-                    child: Container(
-                      color: Colors.white,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 4,
-                      ),
-                      child: Text(
-                        _formatVehicleNumber(vehicleNumber),
-                        style: _mono(
-                          size: 28,
-                          color: _kRed,
-                          letterSpacing: 1.5,
-                          height: 1.0,
+          // ── QR frame + side crosses row ─────────────────────────────
+          // Red medical crosses flank the QR frame on the left and right,
+          // vertically centered with the QR — matches the PDF reference
+          // and the regenerated backend sticker.js output.
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              const _MedicalCross(size: 44),
+              const SizedBox(width: 6),
+              SizedBox(
+                width: 300,
+                height: 296,
+                child: Stack(
+                  clipBehavior: Clip.none,
+                  alignment: Alignment.center,
+                  children: [
+                    // QR image centred with 18px margin from each bracket.
+                    Positioned(
+                      top: 18,
+                      left: (300 - 260) / 2,
+                      child: SizedBox(
+                        width: 260,
+                        height: 260,
+                        child: QrImageView(
+                          data: alertUrl,
+                          version: QrVersions.auto,
+                          size: 260,
+                          backgroundColor: Colors.white,
+                          eyeStyle: const QrEyeStyle(
+                            eyeShape: QrEyeShape.square,
+                            color: _kInk,
+                          ),
+                          dataModuleStyle: const QrDataModuleStyle(
+                            dataModuleShape: QrDataModuleShape.square,
+                            color: _kInk,
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                // Extension Number sits ON the bottom bracket line.
-                // 20pt Poppins Black matches BE NAYAK so both labels
-                // read as a matched pair.
-                Positioned(
-                  bottom: -10,
-                  child: Container(
-                    color: Colors.white,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 4,
-                    ),
-                    child: Text(
-                      'Extension Number',
-                      style: _poppins(
-                        size: 20,
-                        letterSpacing: 0.2,
-                        height: 1.0,
+                    // Brackets on top of QR, under the text.
+                    const Positioned.fill(
+                      child: IgnorePointer(
+                        child: CustomPaint(painter: _BracketPainter()),
                       ),
                     ),
-                  ),
+                    // Vehicle number sits ON the top bracket line — white
+                    // bg breaks the black line where the text renders.
+                    if (showVehicle)
+                      Positioned(
+                        top: -14,
+                        child: Container(
+                          color: Colors.white,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 4,
+                          ),
+                          child: Text(
+                            _formatVehicleNumber(vehicleNumber),
+                            style: _mono(
+                              size: 28,
+                              color: _kRed,
+                              letterSpacing: 1.5,
+                              height: 1.0,
+                            ),
+                          ),
+                        ),
+                      ),
+                    // EXTENSION NO. label sits ON the bottom bracket line.
+                    // 20pt Poppins Black matches the backend sticker.js
+                    // treatment exactly.
+                    Positioned(
+                      bottom: -10,
+                      child: Container(
+                        color: Colors.white,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 4,
+                        ),
+                        child: Text(
+                          'EXTENSION NO.',
+                          style: _poppins(
+                            size: 20,
+                            letterSpacing: 0.3,
+                            height: 1.0,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-              ],
+              ),
+              const SizedBox(width: 6),
+              const _MedicalCross(size: 44),
+            ],
+          ),
+
+          const SizedBox(height: 14),
+
+          // ── Actual extension digits — own clean row under the frame ──
+          // Big red mono — matches the backend sticker.js 34pt digits row.
+          Text(
+            digits.isNotEmpty ? digits : '—',
+            style: _mono(
+              size: 34,
+              color: _kRed,
+              letterSpacing: 2,
+              height: 1.0,
             ),
           ),
 
-          const SizedBox(height: 20),
+          const SizedBox(height: 18),
 
-          // Bottom row: BE NAYAK + cross + pill + cross + BE NAYAK.
-          // Sizes match backend/src/utils/sticker.js exactly (BE NAYAK
-          // Poppins 900 20pt, cross 30px, pill 150×50 with 28pt mono
-          // digits) so the in-app preview and the printed vinyl are
-          // visually identical.
-          //
-          // Wrapped in a FittedBox so that if the designed row width ever
-          // exceeds the sticker's internal band (e.g. a longer extension
-          // digit set, or a wider font metric), the row scales down to
-          // fit rather than clipping. Natural MainAxisSize.min with
-          // explicit gaps lets the FittedBox measure the row's intrinsic
-          // width honestly.
-          SizedBox(
-            width: double.infinity,
-            height: 52,
-            child: FittedBox(
-              fit: BoxFit.scaleDown,
-              alignment: Alignment.center,
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  Text(
-                    'BE NAYAK',
-                    style: _poppins(
-                      size: 20,
-                      letterSpacing: 0.5,
-                      height: 1.0,
-                    ),
-                  ),
-                  const SizedBox(width: 14),
-                  const _MedicalCross(size: 30),
-                  const SizedBox(width: 10),
-                  _ExtensionPill(digits: digits),
-                  const SizedBox(width: 10),
-                  const _MedicalCross(size: 30),
-                  const SizedBox(width: 14),
-                  Text(
-                    'BE NAYAK',
-                    style: _poppins(
-                      size: 20,
-                      letterSpacing: 0.5,
-                      height: 1.0,
-                    ),
-                  ),
-                ],
-              ),
+          // ── BE NAYAK wordmark — large centered ───────────────────────
+          Text(
+            'BE NAYAK',
+            style: _poppins(
+              size: 44,
+              letterSpacing: 2,
+              height: 1.0,
+            ),
+          ),
+
+          const SizedBox(height: 8),
+
+          // ── qr4emergency.com under the wordmark ──────────────────────
+          Text(
+            'qr4emergency.com',
+            style: _poppins(
+              size: 13,
+              letterSpacing: 0.3,
+              height: 1.0,
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-// White pill with red digits and a thin dark outline — matches the
-// printed sticker artwork exactly. Kept flat so the digits pop crisply
-// against the plain white body.
-class _ExtensionPill extends StatelessWidget {
-  const _ExtensionPill({required this.digits});
-  final String digits;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 150,
-      height: 50,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: _kInk, width: 1.4),
-      ),
-      child: Center(
-        child: Text(
-          digits.isNotEmpty ? digits : '—',
-          style: _mono(
-            size: 28,
-            color: _kRed,
-            letterSpacing: 1.5,
-            height: 1.0,
-          ),
-        ),
       ),
     );
   }
@@ -602,42 +564,17 @@ class _Footer extends StatelessWidget {
           ),
         ),
       ),
-      padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
+      padding: const EdgeInsets.fromLTRB(10, 10, 10, 10),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Row 1 — website + email chips. Wrapped in a FittedBox so the
-          // two chips scale down together if they exceed the band width,
-          // rather than clipping. Explicit 24px gap between the two for a
-          // predictable look at the designed size.
-          SizedBox(
-            width: double.infinity,
-            child: FittedBox(
-              fit: BoxFit.scaleDown,
-              alignment: Alignment.center,
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: const [
-                  _ContactChip(
-                    icon: Icons.language_rounded,
-                    label: 'www.qr4emergency.com',
-                  ),
-                  SizedBox(width: 24),
-                  _ContactChip(
-                    icon: Icons.mail_outline_rounded,
-                    label: 'support@qr4emergency.com',
-                  ),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: 2),
-          // Row 2 — ACCIDENT · TRACKING · NO PARKING. Previously this
-          // clipped "NO PARKING" on narrower devices because the three
-          // badges + two dividers overflowed the 460px base width. Now
-          // uses a FittedBox + natural-width row: at the design width it
-          // renders unchanged, at any narrower width the whole row scales
-          // down uniformly so nothing falls off the edge.
+          // Single-row footer — ACCIDENT · TRACKING · NO PARKING. The
+          // previous www + support email chip row sat above these
+          // badges; the PDF reference has only this single row, and
+          // the website now lives above the footer as the small
+          // qr4emergency.com line. Keeping the FittedBox wrapper so
+          // the badges scale down on narrower devices instead of
+          // clipping "NO PARKING".
           SizedBox(
             width: double.infinity,
             child: FittedBox(
@@ -669,35 +606,6 @@ class _Footer extends StatelessWidget {
           ),
         ],
       ),
-    );
-  }
-}
-
-class _ContactChip extends StatelessWidget {
-  const _ContactChip({required this.icon, required this.label});
-  final IconData icon;
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    // 13pt / 18px icon matches backend footerRow1. 14pt made the two
-    // chips collide in the middle (mail icon touched ".com" of the
-    // website URL); 13pt is the largest that leaves ~40px of centre
-    // breathing room at 460px sticker width.
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(icon, size: 18, color: Colors.white),
-        const SizedBox(width: 7),
-        Text(
-          label,
-          style: _poppins(
-            size: 13,
-            weight: FontWeight.w700,
-            color: Colors.white,
-          ),
-        ),
-      ],
     );
   }
 }

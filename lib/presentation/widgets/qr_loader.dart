@@ -108,18 +108,25 @@ class QrBootLoader extends StatelessWidget {
               ],
             ),
             child: ClipOval(
-              child: Image.asset(
-                'assets/images/nayak.jpeg',
-                fit: BoxFit.cover,
-                errorBuilder: (_, _, _) => Container(
-                  decoration: const BoxDecoration(
-                    gradient: AppColors.brandGradient,
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(
-                    Icons.shield_rounded,
-                    color: Colors.white,
-                    size: 32,
+              child: Padding(
+                // Inset so the tall sticker image fits fully inside the
+                // circle's inscribed square — otherwise the oval curve
+                // clips the header and footer of the sticker even with
+                // BoxFit.contain. ~15% of the 76-px diameter.
+                padding: const EdgeInsets.all(11),
+                child: Image.asset(
+                  'assets/images/nayak.jpeg',
+                  fit: BoxFit.contain,
+                  errorBuilder: (_, _, _) => Container(
+                    decoration: const BoxDecoration(
+                      gradient: AppColors.brandGradient,
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.shield_rounded,
+                      color: Colors.white,
+                      size: 32,
+                    ),
                   ),
                 ),
               ),

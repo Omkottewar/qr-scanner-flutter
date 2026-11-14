@@ -132,6 +132,19 @@ class _HomeCarouselState extends State<HomeCarousel> {
   // used so the photo always matches the caption. These defaults are what
   // the carousel shows on first paint and if the backend fetch fails.
   static const List<_Slide> _defaultSlides = [
+    // Local-asset slide using img.jpeg from the assets folder. Added
+    // directly to defaults so it renders without any backend/Supabase
+    // dependency — assetPath takes precedence over imageUrl in
+    // _SlideBackground, so the Image.asset path is what actually paints.
+    _Slide(
+      tag: 'FEATURED',
+      title: 'QR 4 Emergency',
+      subtitle: 'Scan. Call. Help arrives faster.',
+      imageUrl: '',
+      assetPath: 'assets/images/img.jpeg',
+      color: Color(0xFFE51E25),
+      gradient: [Color(0xFFB71218), Color(0xFF0F1626)],
+    ),
     _Slide(
       tag: 'ACCIDENT EMERGENCY',
       title: 'In a crash? Your family knows in seconds.',

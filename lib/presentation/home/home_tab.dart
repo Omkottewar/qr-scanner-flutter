@@ -127,13 +127,20 @@ class _BrandHeader extends StatelessWidget {
                           shape: BoxShape.circle,
                         ),
                         child: ClipOval(
-                          child: Image.asset(
-                            'assets/images/nayak.jpeg',
-                            fit: BoxFit.cover,
-                            errorBuilder: (_, _, _) => const Icon(
-                              Icons.shield_rounded,
-                              color: AppColors.primary,
-                              size: 22,
+                          child: Padding(
+                            // Inset so the tall sticker image fits inside
+                            // the circle's inscribed square — otherwise
+                            // the oval curve clips header + footer even
+                            // with BoxFit.contain. ~15% of diameter.
+                            padding: const EdgeInsets.all(6),
+                            child: Image.asset(
+                              'assets/images/nayak.jpeg',
+                              fit: BoxFit.contain,
+                              errorBuilder: (_, _, _) => const Icon(
+                                Icons.shield_rounded,
+                                color: AppColors.primary,
+                                size: 22,
+                              ),
                             ),
                           ),
                         ),
@@ -968,7 +975,6 @@ class _PricingSection extends StatelessWidget {
     'Private calls with secure number masking',
     'Unlimited QR scans & emergency calls',
     'Spam call protection against repeat callers',
-    'One-time payment · No annual renewal ever',
   ];
 
   List<Widget> get _bullets => _features
@@ -1152,7 +1158,7 @@ class _CertificationsSection extends StatefulWidget {
       fullTitle: 'Udyam MSME Registration',
       summary:
           'Government of India Ministry of MSME registration recognising the enterprise as a Micro Small and Medium Enterprise.',
-      legalEntity: 'C P INFOTECH',
+      legalEntity: 'C P INFOTECH™',
       registrationNumber: 'UDYAM-MH-20-0293149',
       issuedBy:
           'Ministry of Micro, Small and Medium Enterprises, Govt. of India',
@@ -1188,7 +1194,7 @@ class _CertificationsSection extends StatefulWidget {
       fullTitle: 'Goods and Services Tax (GST) Registration',
       summary:
           'Government of India Form GST REG-06 certificate. Every invoice and purchase from the business is fully tax-compliant.',
-      legalEntity: 'C P INFOTECH',
+      legalEntity: 'C P INFOTECH™',
       registrationNumber: '27IEIPP7022D2ZD',
       issuedBy: 'Government of India · Goods and Services Tax',
       issuedOn: '21-10-2026',
@@ -1204,7 +1210,7 @@ class _CertificationsSection extends StatefulWidget {
       fullTitle: 'Importer-Exporter Code (IEC)',
       summary:
           'DGFT-issued code required for international trade. Lets the business legally import and export goods and services across borders.',
-      legalEntity: 'C P INFOTECH',
+      legalEntity: 'C P INFOTECH™',
       registrationNumber: 'IEIPP7022D',
       issuedBy:
           'Directorate General of Foreign Trade, Ministry of Commerce and Industry',
@@ -1221,7 +1227,7 @@ class _CertificationsSection extends StatefulWidget {
       fullTitle: 'RXIL TReDS Exchange Registration',
       summary:
           'Registered as a Seller on the Receivables Exchange of India (RXIL), the RBI-regulated TReDS platform for financing trade receivables.',
-      legalEntity: 'C P INFOTECH',
+      legalEntity: 'C P INFOTECH™',
       registrationNumber: 'CP0167850',
       issuedBy:
           'Receivables Exchange of India Limited (RXIL — NSE × SIDBI JV)',
@@ -1239,7 +1245,7 @@ class _CertificationsSection extends StatefulWidget {
       fullTitle: 'Government e-Marketplace (GeM) Seller',
       summary:
           'Registered Seller on the Government e-Marketplace — the official procurement portal used by every Indian central and state government body.',
-      legalEntity: 'C P INFOTECH',
+      legalEntity: 'C P INFOTECH™',
       registrationNumber: 'GD1W260015006576',
       issuedBy: 'Government e-Marketplace (GeM), Govt. of India',
       issuedOn: '11-10-2022',
@@ -1257,8 +1263,8 @@ class _CertificationsSection extends StatefulWidget {
       accent: Color(0xFFD6A0FF),
       fullTitle: 'Trademark — Class 9 (Computers, Software, Security Devices)',
       summary:
-          'Trademark application covering the C.P. INFOTECH mark across software, AI/ML, cryptography, computer hardware, and safety & signalling devices.',
-      legalEntity: 'C P INFOTECH',
+          'Trademark application covering the C.P. INFOTECH™ mark across software, AI/ML, cryptography, computer hardware, and safety & signalling devices.',
+      legalEntity: 'C P INFOTECH™',
       registrationNumber: 'Temp. Ref. 15498930',
       issuedBy: 'Trade Marks Registry, Govt. of India',
       issuedOn: '04-11-2026',
@@ -1275,7 +1281,7 @@ class _CertificationsSection extends StatefulWidget {
       fullTitle: 'Trademark — Class 35 (Advertising, Marketing, Retail)',
       summary:
           'Trademark application covering advertising, marketing, retail, e-commerce, digital marketing, and consumer information services.',
-      legalEntity: 'C P INFOTECH',
+      legalEntity: 'C P INFOTECH™',
       registrationNumber: 'Temp. Ref. 15500205',
       issuedBy: 'Trade Marks Registry, Govt. of India',
       issuedOn: '04-11-2026',
@@ -1292,7 +1298,7 @@ class _CertificationsSection extends StatefulWidget {
       fullTitle: 'Trademark — Class 42 (IT, Software, Design Services)',
       summary:
           'Trademark application covering IT services, software development, hosting, SaaS, IT consultancy, IT security, data services, and design.',
-      legalEntity: 'C P INFOTECH',
+      legalEntity: 'C P INFOTECH™',
       registrationNumber: 'Temp. Ref. 15500251',
       issuedBy: 'Trade Marks Registry, Govt. of India',
       issuedOn: '04-11-2026',
@@ -1309,7 +1315,7 @@ class _CertificationsSection extends StatefulWidget {
       fullTitle: 'FSSAI Food Safety Registration',
       summary:
           'Food Safety and Standards Authority of India registration — mandatory for any business that handles, stores, or sells food products.',
-      legalEntity: 'C P INFOTECH',
+      legalEntity: 'C P INFOTECH™',
       registrationNumber: '21526077003044',
       issuedBy:
           'Food Safety and Standards Authority of India (FDA Maharashtra)',
@@ -1330,7 +1336,7 @@ class _CertificationsSection extends StatefulWidget {
       fullTitle: 'Skill India — eKYC Verified Profile',
       summary:
           'eKYC-verified profile on the Government of India Skill India portal under the Ministry of Skill Development and Entrepreneurship.',
-      legalEntity: 'C P INFOTECH',
+      legalEntity: 'C P INFOTECH™',
       issuedBy:
           'Ministry of Skill Development and Entrepreneurship, Govt. of India',
       scope:
@@ -1346,7 +1352,7 @@ class _CertificationsSection extends StatefulWidget {
       fullTitle: 'National Career Service — Verified Employer',
       summary:
           'Registered Employer on the Government of India National Career Service portal. Lets the company post jobs and connect with jobseekers.',
-      legalEntity: 'C P INFOTECH',
+      legalEntity: 'C P INFOTECH™',
       issuedBy: 'Ministry of Labour & Employment, Govt. of India',
       scope:
           'Employer profile with Director verified identity; permitted to post jobs and search jobseekers.',
@@ -1361,7 +1367,7 @@ class _CertificationsSection extends StatefulWidget {
       fullTitle: 'Maharashtra Shops & Establishment Registration',
       summary:
           'Maharashtra Shops and Establishments (Regulation of Employment and Conditions of Service) Act, 2017 — mandatory registration for every commercial establishment in the state.',
-      legalEntity: 'C P INFOTECH',
+      legalEntity: 'C P INFOTECH™',
       registrationNumber: '255523003208484894',
       issuedBy:
           'Additional Commissioner of Labour, Nagpur · Govt. of Maharashtra',
@@ -1383,6 +1389,74 @@ class _CertificationsSection extends StatefulWidget {
       issuedBy: 'Razorpay · RBI-regulated payment aggregator',
       scope:
           'UPI, cards, netbanking, wallets, EMI. Every transaction is signature-verified server-side via webhook before an order is marked paid.',
+    ),
+
+    // ── Slide 5 — Corporate identity & brand marks ──────────────────────
+    _CertSpec(
+      category: 'INCORPORATED',
+      title: 'COI',
+      subtitle: 'MCA, GOVT. OF INDIA',
+      chip: 'Companies Act',
+      icon: Icons.account_balance_rounded,
+      accent: Color(0xFFFFC85A),
+      fullTitle: 'Certificate of Incorporation',
+      summary:
+          'Certificate of Incorporation issued by the Registrar of Companies, Mumbai, under Section 7(2) of the Companies Act, 2013 — recognising C.P. NETWORK PRIVATE LIMITED as a company limited by shares.',
+      legalEntity: 'C.P. NETWORK PRIVATE LIMITED',
+      registrationNumber: 'CIN: U74120MH2016PTC272274',
+      issuedBy:
+          'Registrar of Companies, Mumbai · Ministry of Corporate Affairs, Govt. of India',
+      issuedOn: '21-01-2016',
+      scope:
+          'Company limited by shares, registered office at Plot No. 10, Banarjee Layout, Bhagwan Nagar, Nagpur 440003, Maharashtra. Signed by Rajender Singh Meena, Deputy Registrar of Companies.',
+    ),
+    _CertSpec(
+      category: 'BRAND MARK',
+      title: 'C.P. INFOTECH™',
+      subtitle: 'REGISTERED LOGO',
+      chip: 'Brand Asset',
+      icon: Icons.copyright_rounded,
+      accent: Color(0xFFFF9FD6),
+      imageAsset: 'assets/images/cp.png',
+      fullTitle: 'C.P. INFOTECH™ — Brand Mark',
+      summary:
+          'The C.P. INFOTECH™ logo is the registered visual identity used across every product and service we ship. Protected under India\'s Trade Marks Act, 1999 via the TM Class 9, 35, and 42 applications held by the firm.',
+      legalEntity: 'C P INFOTECH™',
+      issuedBy: 'Trade Marks Registry, Govt. of India',
+      scope:
+          'Logo use on products, packaging, digital assets, documentation, and marketing material. See TM Class 9 / 35 / 42 medallions for the underlying registrations.',
+    ),
+    _CertSpec(
+      category: 'COPYRIGHT',
+      title: '©',
+      subtitle: 'ALL RIGHTS RESERVED',
+      chip: 'Content Protected',
+      icon: Icons.copyright_rounded,
+      accent: Color(0xFFB9A9FF),
+      fullTitle: 'Copyright — CP Infotech™ & CP Network Pvt. Ltd.',
+      summary:
+          'All source code, product designs, sticker artwork, QR layouts, marketing copy, and digital content are copyrighted works of CP Infotech™ and C P Network Pvt. Ltd. Reuse without written permission is not permitted.',
+      legalEntity: 'CP INFOTECH™ & C P NETWORK PVT. LTD.',
+      issuedBy: 'Copyright held by the entities named above',
+      scope:
+          'Source code, product designs, sticker artwork, QR layouts, marketing content, documentation, and all other original works produced by the company.',
+    ),
+    _CertSpec(
+      category: 'PRODUCT MARK',
+      title: 'BE NAYAK',
+      subtitle: 'BY C.P. INFOTECH™',
+      chip: 'In Field',
+      icon: Icons.verified_rounded,
+      accent: Color(0xFFFF3B30),
+      imageAsset: 'assets/images/nayak.jpeg',
+      fullTitle: 'BE NAYAK — Product Identity of C.P. INFOTECH™',
+      summary:
+          'BE NAYAK is the public-facing product mark of C.P. INFOTECH™ — the QR 4 Emergency sticker brand currently deployed on customer vehicles across India. Every physical sticker, every call-owner page, and every in-app surface carries this mark.',
+      legalEntity: 'C P INFOTECH™',
+      issuedBy:
+          'Trademark held by C.P. INFOTECH™ · Trade Marks Registry, Govt. of India',
+      scope:
+          'Vehicle sticker brand, mobile app product name, alert-page branding, and all customer-facing emergency scan flows.',
     ),
   ];
 
@@ -1491,6 +1565,7 @@ class _CertSpec {
     required this.accent,
     required this.fullTitle,
     required this.summary,
+    this.imageAsset,
     this.legalEntity,
     this.registrationNumber,
     this.issuedBy,
@@ -1506,6 +1581,12 @@ class _CertSpec {
   final String chip;
   final IconData icon;
   final Color accent;
+
+  // When set, the medallion renders this asset in place of `icon` — used
+  // for brand marks (CP logo, BE NAYAK sticker) that are images, not
+  // material icons. Falls back to `icon` everywhere `imageAsset` is null,
+  // so slides 1-4 are unaffected.
+  final String? imageAsset;
 
   // Fields shown when the user taps for details. `fullTitle` and `summary`
   // are required so every medallion has something readable in the sheet;
@@ -1575,13 +1656,37 @@ class _CertHeader extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 6),
-          const Text(
-            'CP INFOTECH & CP NETWORK PVT. LTD.',
-            style: TextStyle(
-              color: Color(0xFFE6C6C9),
-              fontSize: 11.5,
-              fontWeight: FontWeight.w800,
-              letterSpacing: 1,
+          // Text.rich so the ™ renders as a visible superscript — the
+          // plain-glyph ™ at this fontSize is too small to catch the eye,
+          // and the user flagged that the trademark wasn't readable here.
+          const Text.rich(
+            TextSpan(
+              style: TextStyle(
+                color: Color(0xFFE6C6C9),
+                fontSize: 11.5,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 1,
+              ),
+              children: [
+                TextSpan(text: 'CP INFOTECH'),
+                WidgetSpan(
+                  alignment: PlaceholderAlignment.top,
+                  child: Padding(
+                    padding: EdgeInsets.only(left: 1, top: 1),
+                    child: Text(
+                      'TM',
+                      style: TextStyle(
+                        color: Color(0xFFFFE28A),
+                        fontSize: 7,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 0.3,
+                        height: 1,
+                      ),
+                    ),
+                  ),
+                ),
+                TextSpan(text: ' & CP NETWORK PVT. LTD.'),
+              ],
             ),
           ),
           const SizedBox(height: 18),
@@ -1768,14 +1873,38 @@ class _CertMedallion extends StatelessWidget {
                 overflow: TextOverflow.ellipsis,
                 style: const TextStyle(
                   color: Color(0xFFFFE28A),
-                  fontSize: 8.5,
+                  // Slightly smaller + tighter tracking so longer labels
+                  // like "MCA, GOVT. OF INDIA" and "GOVT. MARKETPLACE" don't
+                  // get ellipsized at medallion width.
+                  fontSize: 7.8,
                   fontWeight: FontWeight.w900,
-                  letterSpacing: 1.3,
+                  letterSpacing: 1.0,
                 ),
               ),
-              const SizedBox(height: 3),
-              Icon(spec.icon, color: spec.accent, size: 22),
-              const SizedBox(height: 3),
+              const SizedBox(height: 2),
+              // Image swap for brand-mark medallions (CP logo, BE NAYAK) —
+              // bigger slot (30 px) than the Icon path (22 px) so the
+              // actual logo is legible; the icon-based medallions keep the
+              // original compact size so slides 1-4 don't change.
+              spec.imageAsset != null
+                  ? Container(
+                      padding: const EdgeInsets.all(2),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(4),
+                        child: Image.asset(
+                          spec.imageAsset!,
+                          width: 30,
+                          height: 30,
+                          fit: BoxFit.contain,
+                        ),
+                      ),
+                    )
+                  : Icon(spec.icon, color: spec.accent, size: 22),
+              const SizedBox(height: 2),
               FittedBox(
                 fit: BoxFit.scaleDown,
                 child: Text(
@@ -1785,7 +1914,7 @@ class _CertMedallion extends StatelessWidget {
                   style: const TextStyle(
                     color: Color(0xFFFFE28A),
                     fontFamily: 'serif',
-                    fontSize: 18,
+                    fontSize: 17,
                     fontWeight: FontWeight.w900,
                     letterSpacing: 0.4,
                     height: 1,
@@ -1800,15 +1929,18 @@ class _CertMedallion extends StatelessWidget {
                 overflow: TextOverflow.ellipsis,
                 style: const TextStyle(
                   color: Color(0xFFE6C6C9),
-                  fontSize: 9,
+                  // Smaller + tighter tracking so "ALL RIGHTS RESERVED"
+                  // and "GOVT. OF INDIA" fit without ellipsis on narrow
+                  // devices.
+                  fontSize: 7.8,
                   fontWeight: FontWeight.w800,
-                  letterSpacing: 0.7,
+                  letterSpacing: 0.4,
                 ),
               ),
-              const SizedBox(height: 5),
+              const SizedBox(height: 4),
               Container(
                 padding:
-                    const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
+                    const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                 decoration: BoxDecoration(
                   color: spec.accent.withValues(alpha: 0.22),
                   borderRadius: BorderRadius.circular(999),
@@ -1824,7 +1956,7 @@ class _CertMedallion extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     color: spec.accent,
-                    fontSize: 9,
+                    fontSize: 8.5,
                     fontWeight: FontWeight.w800,
                     letterSpacing: 0.3,
                   ),
@@ -1911,10 +2043,26 @@ class _CertDetailSheet extends StatelessWidget {
                                 ],
                               ),
                             ),
-                            child: Icon(
-                              spec.icon,
-                              color: spec.accent,
-                              size: 26,
+                            child: Padding(
+                              padding: const EdgeInsets.all(4),
+                              child: spec.imageAsset != null
+                                  ? Container(
+                                      decoration: BoxDecoration(
+                                        color: Colors.white,
+                                        borderRadius:
+                                            BorderRadius.circular(8),
+                                      ),
+                                      padding: const EdgeInsets.all(3),
+                                      child: Image.asset(
+                                        spec.imageAsset!,
+                                        fit: BoxFit.contain,
+                                      ),
+                                    )
+                                  : Icon(
+                                      spec.icon,
+                                      color: spec.accent,
+                                      size: 26,
+                                    ),
                             ),
                           ),
                         ),

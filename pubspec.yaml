@@ -61,11 +61,16 @@ dev_dependencies:
 flutter_launcher_icons:
   android: "ic_launcher"
   ios: true
-  image_path: "assets/images/nayak.jpeg"
-  # Adaptive icon for Android 8+. White background so the sticker artwork
-  # lifts off cleanly on any launcher mask (circle, squircle, square).
+  # Square, padded variants generated from nayak.jpeg by
+  # backend/scripts/generate-app-icon.js. Re-run that script whenever
+  # the source sticker changes — don't point this at the raw tall
+  # nayak.jpeg or the launcher mask will clip the header/footer.
+  image_path: "assets/images/app_icon.png"
+  # Adaptive icon for Android 8+. White background behind a foreground
+  # that's already inset to Google's 66% safe zone, so every launcher
+  # mask (circle, squircle, square) shows the whole sticker.
   adaptive_icon_background: "#FFFFFF"
-  adaptive_icon_foreground: "assets/images/nayak.jpeg"
+  adaptive_icon_foreground: "assets/images/app_icon_foreground.png"
   remove_alpha_ios: true
   web:
     generate: false
