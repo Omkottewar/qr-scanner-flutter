@@ -74,13 +74,12 @@ class _HomeCarouselState extends State<HomeCarousel> {
       for (var i = 0; i < raw.length && parsed.length < 10; i++) {
         final item = raw[i];
         if (item is! Map) continue;
-        final title = item['title']?.toString().trim() ?? '';
         final imageUrl = item['imageUrl']?.toString().trim() ?? '';
-        if (title.isEmpty || imageUrl.isEmpty) continue;
+        if (imageUrl.isEmpty) continue;
         final palette = _slidePalette[parsed.length % _slidePalette.length];
         parsed.add(_Slide(
           tag: item['tag']?.toString() ?? '',
-          title: title,
+          title: item['title']?.toString().trim() ?? '',
           subtitle: item['subtitle']?.toString() ?? '',
           imageUrl: imageUrl,
           color: palette.$1,
@@ -279,76 +278,87 @@ class _SlideCard extends StatelessWidget {
                 ),
               ),
             ),
-            // Bottom dark gradient so text reads on any photo
-            const Positioned.fill(
-              child: IgnorePointer(
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [
-                        Color(0x33000000),
-                        Color(0xE6000000),
-                      ],
-                      stops: [0.25, 1.0],
+            // Bottom dark gradient — only rendered when there's text to
+            // read. Pure-image slides stay crisp instead of getting an
+            // unexplained dark wash on the bottom half.
+            if (slide.title.isNotEmpty)
+              const Positioned.fill(
+                child: IgnorePointer(
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          Color(0x33000000),
+                          Color(0xE6000000),
+                        ],
+                        stops: [0.25, 1.0],
+                      ),
                     ),
                   ),
                 ),
               ),
-            ),
-            // Chip + title + subtitle
-            Positioned(
-              left: 20,
-              right: 20,
-              bottom: 20,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 10, vertical: 5),
-                    decoration: BoxDecoration(
-                      color: slide.color.withValues(alpha: 0.2),
-                      borderRadius: BorderRadius.circular(999),
-                      border: Border.all(
-                        color: slide.color.withValues(alpha: 0.4),
+            // Chip + title + subtitle. Skipped entirely when the slide
+            // has no title — otherwise the empty tag container renders
+            // as a tiny colored pill over the photo (the "blob"
+            // artifact on image-only admin uploads).
+            if (slide.title.isNotEmpty)
+              Positioned(
+                left: 20,
+                right: 20,
+                bottom: 20,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (slide.tag.isNotEmpty) ...[
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 10, vertical: 5),
+                        decoration: BoxDecoration(
+                          color: slide.color.withValues(alpha: 0.2),
+                          borderRadius: BorderRadius.circular(999),
+                          border: Border.all(
+                            color: slide.color.withValues(alpha: 0.4),
+                          ),
+                        ),
+                        child: Text(
+                          slide.tag,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 10,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 1.4,
+                          ),
+                        ),
                       ),
-                    ),
-                    child: Text(
-                      slide.tag,
+                      const SizedBox(height: 10),
+                    ],
+                    Text(
+                      slide.title,
                       style: const TextStyle(
                         color: Colors.white,
-                        fontSize: 10,
+                        fontSize: 17,
                         fontWeight: FontWeight.w800,
-                        letterSpacing: 1.4,
+                        height: 1.25,
+                        letterSpacing: -0.3,
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 10),
-                  Text(
-                    slide.title,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 17,
-                      fontWeight: FontWeight.w800,
-                      height: 1.25,
-                      letterSpacing: -0.3,
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    slide.subtitle,
-                    style: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.82),
-                      fontSize: 12.5,
-                      height: 1.4,
-                    ),
-                  ),
-                ],
+                    if (slide.subtitle.isNotEmpty) ...[
+                      const SizedBox(height: 6),
+                      Text(
+                        slide.subtitle,
+                        style: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.82),
+                          fontSize: 12.5,
+                          height: 1.4,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
               ),
-            ),
           ],
         ),
       ),
@@ -376,7 +386,12 @@ class _NetworkBg extends StatelessWidget {
   Widget build(BuildContext context) {
     return Image.network(
       slide.imageUrl,
-      fit: BoxFit.cover,
+      // `contain` instead of `cover` so taller/squarer admin uploads
+      // show in full against the card's gradient instead of getting
+      // their top and bottom cropped. Admins upload self-contained
+      // posters where every pixel of text matters, so cropping is
+      // never the right call.
+      fit: BoxFit.contain,
       gaplessPlayback: true,
       loadingBuilder: (context, child, progress) {
         if (progress == null) return child;

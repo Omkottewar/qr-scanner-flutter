@@ -1368,7 +1368,7 @@ class _CertificationsSection extends StatefulWidget {
       summary:
           'Maharashtra Shops and Establishments (Regulation of Employment and Conditions of Service) Act, 2017 — mandatory registration for every commercial establishment in the state.',
       legalEntity: 'C P INFOTECH™',
-      registrationNumber: '255523003208484894',
+      registrationNumber: '2552300320494814',
       issuedBy:
           'Additional Commissioner of Labour, Nagpur · Govt. of Maharashtra',
       issuedOn: '07-10-2025',

@@ -9,6 +9,7 @@ import 'data/session_store.dart';
 import 'presentation/auth/biometric_lock_screen.dart';
 import 'presentation/auth/login_screen.dart';
 import 'presentation/shell/main_shell.dart';
+import 'presentation/widgets/cover_ad_screen.dart';
 import 'presentation/widgets/qr_loader.dart';
 import 'presentation/widgets/update_required_screen.dart';
 
@@ -33,6 +34,11 @@ class _EmergencyAlertAppState extends State<EmergencyAlertApp> {
   bool _loggedIn = false;
   bool _biometricLocked = false;
   bool _updateRequired = false;
+  // Full-page cover ad shown as the first surface a signed-in user sees
+  // after authentication clears (fresh cold start with valid session,
+  // post-login, or post-biometric-unlock). Logged-out users never see
+  // it. Cleared once the user skips or the auto-dismiss timer fires.
+  bool _showCoverAd = false;
   // Soft-update signal: there's a newer version on Play Store but the
   // client is still within the supported window. MainShell/HomeTab turn
   // this into a dismissible banner on the home surface.
@@ -141,6 +147,10 @@ class _EmergencyAlertAppState extends State<EmergencyAlertApp> {
       _loading = false;
       _loggedIn = loggedIn;
       _biometricLocked = needsBiometric;
+      // Cold start with a valid session and no biometric gate → user
+      // lands straight in the shell slot, so arm the ad now. If a
+      // biometric gate is pending, _onUnlocked arms it instead.
+      _showCoverAd = loggedIn && !needsBiometric;
       _updateAvailable = updateAvailable;
       if (updateAvailable && versionMap != null) {
         _updateMessage = versionMap['updateMessage']?.toString() ??
@@ -252,27 +262,42 @@ class _EmergencyAlertAppState extends State<EmergencyAlertApp> {
                     setState(() {
                       _loggedIn = true;
                       _biometricLocked = false;
+                      // Fresh login → signed-in user; show the ad as
+                      // the first post-auth surface.
+                      _showCoverAd = true;
                     });
                   },
                 )
               : _biometricLocked
                   ? BiometricLockScreen(
                       key: const ValueKey('biometric-lock'),
-                      onUnlocked: () =>
-                          setState(() => _biometricLocked = false),
+                      onUnlocked: () => setState(() {
+                        _biometricLocked = false;
+                        // Biometric cleared → signed-in user is about
+                        // to see the shell; show the ad first.
+                        _showCoverAd = true;
+                      }),
                       onSignOut: _signOutFromLock,
                     )
-                  : MainShell(
-                      key: const ValueKey('shell'),
-                      onLogout: () {
-                        PushService.instance.unregister();
-                        setState(() => _loggedIn = false);
-                      },
-                      updateAvailable: _updateAvailable,
-                      updateLatestVersion: _latestVersion,
-                      updateMessage: _updateMessage,
-                      updatePlayStoreUrl: _playStoreUrl,
-                    ),
+                  : _showCoverAd
+                      ? CoverAdScreen(
+                          key: const ValueKey('cover-ad'),
+                          onDismiss: () {
+                            if (!mounted) return;
+                            setState(() => _showCoverAd = false);
+                          },
+                        )
+                      : MainShell(
+                          key: const ValueKey('shell'),
+                          onLogout: () {
+                            PushService.instance.unregister();
+                            setState(() => _loggedIn = false);
+                          },
+                          updateAvailable: _updateAvailable,
+                          updateLatestVersion: _latestVersion,
+                          updateMessage: _updateMessage,
+                          updatePlayStoreUrl: _playStoreUrl,
+                        ),
     );
   }
 }
