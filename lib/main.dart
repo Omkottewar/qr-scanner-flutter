@@ -61,6 +61,10 @@ class _EmergencyAlertAppState extends State<EmergencyAlertApp> {
   }
 
   void _onSessionExpired() {
+    // Reset push registration so the next login posts this device's
+    // token for the new session. Without this, `_registeredForSession`
+    // stayed true and the next login skipped registration.
+    PushService.instance.unregister();
     if (!mounted) return;
     if (_loggedIn) {
       setState(() => _loggedIn = false);
@@ -99,13 +103,17 @@ class _EmergencyAlertAppState extends State<EmergencyAlertApp> {
           .timeout(const Duration(seconds: 3))
           .then((_) => true)
           .catchError((Object e) {
-        if (e is ApiException) {
+        // Only a real 401 means the session is gone. ApiClient also wraps
+        // network failures and 5xx errors as ApiException, so checking the
+        // type alone logged out every user who opened the app offline or
+        // while the server was cold-starting.
+        if (e is ApiException && e.statusCode == 401) {
           debugPrint('Session validation failed: ${e.message}');
-          return false; // 401 → force login
+          return false;
         }
-        // Network error — keep the cached session so offline users can
-        // still open the app.
-        debugPrint('Session validation skipped (network): $e');
+        // Network error / timeout / server error — keep the cached
+        // session so offline users can still open the app.
+        debugPrint('Session validation skipped: $e');
         return true;
       });
     } else {
@@ -172,11 +180,14 @@ class _EmergencyAlertAppState extends State<EmergencyAlertApp> {
     }
   }
 
-  // Best-effort: probes GET /payments/status/:orderId for any order id
-  // saved to disk before an OS kill. Verified → clear the marker and
-  // show a "you're already paid" toast on the next frame. Failed →
-  // clear it. Created (still pending on Razorpay) → leave the marker
-  // so the user's next tap can resume.
+  // Finishes a checkout the app was killed in the middle of. The order id,
+  // the QR form (for a new QR) and — once Razorpay reported success — the
+  // payment id + signature are saved to disk during checkout, so here we
+  // can finish the job instead of only telling the user "you're paid":
+  //   • new QR, paid, no QR yet  → POST /qr/create with the saved form
+  //   • renewal, paid, not applied → POST /qr/:id/renew/verify
+  //   • already done             → clear the marker, tell the user
+  //   • not paid / failed        → clear (or keep while still pending)
   Future<void> _reconcilePendingOrder() async {
     try {
       final pending = await PendingOrderStore.read();
@@ -191,36 +202,86 @@ class _EmergencyAlertAppState extends State<EmergencyAlertApp> {
         return;
       }
       final status = res['status']?.toString();
-      if (status == 'verified' || status == 'failed') {
+      final hasQr = res['qr_id'] != null;
+      // `consumed` = the payment already created/renewed a QR. Older
+      // servers don't send it; for them fall back to the old signals.
+      final consumed = res.containsKey('consumed')
+          ? res['consumed'] == true
+          : (pending.purpose == 'qr_create' ? hasQr : status == 'verified');
+      final paid = status == 'verified' || pending.hasPaymentProof;
+
+      if (consumed) {
         await PendingOrderStore.clear();
-        if (mounted && status == 'verified') {
-          // Best-effort toast so the user knows an earlier attempt
-          // did complete. History tab refresh will show the QR.
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            final ctx = _scaffoldContext;
-            if (ctx == null) return;
-            ScaffoldMessenger.of(ctx).showSnackBar(
-              const SnackBar(
-                content: Text('A previous payment completed. Your QR is active.'),
-              ),
-            );
-          });
-        }
+        _showBootMessage(pending.purpose == 'qr_renew'
+            ? 'A previous renewal payment completed. Your QR is renewed.'
+            : 'A previous payment completed. Your QR is active.');
+        return;
       }
-      // Otherwise still 'created' — leave the marker in place; a stale
-      // one gets auto-cleared by PendingOrderStore.read() after 24h.
+
+      if (paid && pending.purpose == 'qr_create' && pending.createBody != null) {
+        await ApiClient.instance.post('/qr/create', {
+          ...pending.createBody!,
+          'razorpay_order_id': pending.orderId,
+          'razorpay_payment_id': pending.paymentId ?? '',
+          'razorpay_signature': pending.signature ?? '',
+        });
+        await PendingOrderStore.clear();
+        _showBootMessage('Your earlier payment went through — your QR has been created.');
+        return;
+      }
+
+      if (paid && pending.purpose == 'qr_renew' &&
+          pending.qrId != null && pending.hasPaymentProof) {
+        await ApiClient.instance.post('/qr/${pending.qrId}/renew/verify', {
+          'razorpay_order_id': pending.orderId,
+          'razorpay_payment_id': pending.paymentId,
+          'razorpay_signature': pending.signature,
+        });
+        await PendingOrderStore.clear();
+        _showBootMessage('Your earlier renewal payment went through — your QR is renewed.');
+        return;
+      }
+
+      if (status == 'failed' && !pending.hasPaymentProof) {
+        await PendingOrderStore.clear();
+      }
+      // Otherwise still pending (or paid but we can't finish it from
+      // here) — keep the marker and try again on the next launch.
+      // PendingOrderStore.read() expires it eventually.
     } catch (e) {
+      // A 4xx means the server definitively refused (e.g. vehicle
+      // already registered, payment already used) — retrying on every
+      // launch won't help, and support can see the payment row.
+      if (e is ApiException &&
+          e.statusCode != null &&
+          e.statusCode! >= 400 &&
+          e.statusCode! < 500 &&
+          e.statusCode != 401) {
+        debugPrint('[boot] reconcilePendingOrder refused by server: $e');
+        await PendingOrderStore.clear();
+        _showBootMessage(
+            'We couldn\'t finish an earlier payment: ${e.message} '
+            'Contact support if you were charged.');
+        return;
+      }
       debugPrint('[boot] reconcilePendingOrder skipped: $e');
     }
   }
 
-  // Captured for the reconciliation SnackBar. The MainShell context
-  // is the closest ScaffoldMessenger ancestor; grabbed via the root
-  // navigator when needed. Null-safe — if the shell isn't up yet the
-  // toast is silently dropped.
-  BuildContext? get _scaffoldContext =>
-      _navKey.currentContext;
-  final GlobalKey<NavigatorState> _navKey = GlobalKey<NavigatorState>();
+  // Root ScaffoldMessenger so boot-time messages can show no matter which
+  // screen is up. (The previous navigator key was never passed to
+  // MaterialApp, so these messages were always silently dropped.)
+  final GlobalKey<ScaffoldMessengerState> _messengerKey =
+      GlobalKey<ScaffoldMessengerState>();
+
+  void _showBootMessage(String text) {
+    if (!mounted) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _messengerKey.currentState?.showSnackBar(
+        SnackBar(content: Text(text), duration: const Duration(seconds: 6)),
+      );
+    });
+  }
 
   Future<void> _signOutFromLock() async {
     await SessionStore.clear();
@@ -250,6 +311,7 @@ class _EmergencyAlertAppState extends State<EmergencyAlertApp> {
       title: 'Emergency Alert',
       theme: buildAppTheme(),
       debugShowCheckedModeBanner: false,
+      scaffoldMessengerKey: _messengerKey,
       home: _loading
           ? const Scaffold(
               body: QrBootLoader(status: 'Securing your privacy'),

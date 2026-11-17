@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/theme/app_colors.dart';
+import '../../core/theme/app_spacing.dart';
 import '../widgets/scale_tap.dart';
 import 'widgets/home_carousel.dart';
 import 'widgets/promo_ad_card.dart';
@@ -108,15 +109,22 @@ class _BrandHeader extends StatelessWidget {
         child: SafeArea(
           bottom: false,
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 10, 16, 12),
+            // Left 13 = 16 minus the 3px hit-area margin around the 42px
+            // logo, so the logo itself still sits 16px from the edge.
+            padding: const EdgeInsets.fromLTRB(13, 8, 16, 8),
             child: Row(
               children: [
                 // Tapping the logo opens the side drawer — the hamburger
-                // affordance for this app.
+                // affordance for this app. 48x48 hit area (minimum tap
+                // target) around the 42px logo.
                 GestureDetector(
                   onTap: onLogoTap,
                   behavior: HitTestBehavior.opaque,
-                  child: Stack(
+                  child: SizedBox(
+                    width: 48,
+                    height: 48,
+                    child: Center(
+                      child: Stack(
                     alignment: Alignment.bottomRight,
                     children: [
                       Container(
@@ -163,15 +171,24 @@ class _BrandHeader extends StatelessWidget {
                       ),
                     ],
                   ),
+                    ),
+                  ),
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: 9),
                 Expanded(
-                  child: Column(
+                  // The app bar has a fixed height, so at large system
+                  // font sizes the two lines are scaled down to fit
+                  // instead of overflowing.
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerLeft,
+                    child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisSize: MainAxisSize.min,
                     children: const [
                       Text(
                         'QR 4 Emergency',
+                        maxLines: 1,
                         style: TextStyle(
                           color: Colors.white,
                           fontSize: 20,
@@ -183,8 +200,9 @@ class _BrandHeader extends StatelessWidget {
                       SizedBox(height: 4),
                       Text(
                         "India's trusted emergency QR network",
+                        maxLines: 1,
                         style: TextStyle(
-                          color: Color(0xFFCFE0FF),
+                          color: Color(0xE6FFFFFF),
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
                           letterSpacing: 0.1,
@@ -192,6 +210,7 @@ class _BrandHeader extends StatelessWidget {
                         ),
                       ),
                     ],
+                  ),
                   ),
                 ),
               ],
@@ -232,7 +251,7 @@ class _DealCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       color: Colors.white,
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.page, vertical: 12),
       child: ScaleTap(
         onTap: onBuy,
         child: Container(
@@ -252,7 +271,13 @@ class _DealCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Row(
+                    // Wrap (not Row) so the badge and "Save" text move to
+                    // a second line on narrow screens / large fonts
+                    // instead of overflowing.
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 4,
+                      crossAxisAlignment: WrapCrossAlignment.center,
                       children: [
                         Container(
                           padding: const EdgeInsets.symmetric(
@@ -271,7 +296,6 @@ class _DealCard extends StatelessWidget {
                             ),
                           ),
                         ),
-                        const SizedBox(width: 8),
                         const Text(
                           'Save ₹400',
                           style: TextStyle(
@@ -294,8 +318,10 @@ class _DealCard extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 4),
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.end,
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 4,
+                      crossAxisAlignment: WrapCrossAlignment.end,
                       children: const [
                         Text(
                           '₹599',
@@ -307,7 +333,6 @@ class _DealCard extends StatelessWidget {
                             fontFeatures: [FontFeature.tabularFigures()],
                           ),
                         ),
-                        SizedBox(width: 8),
                         Padding(
                           padding: EdgeInsets.only(bottom: 3),
                           child: Text(
@@ -322,7 +347,6 @@ class _DealCard extends StatelessWidget {
                             ),
                           ),
                         ),
-                        SizedBox(width: 8),
                         Padding(
                           padding: EdgeInsets.only(bottom: 3),
                           child: Text(
@@ -427,17 +451,26 @@ class _FeaturesRail extends StatelessWidget {
         children: [
           const _SectionTitle(title: 'Top features'),
           const SizedBox(height: 12),
-          SizedBox(
-            height: 198,
-            child: ListView.separated(
+          // A horizontal list needs a fixed height, so grow it with the
+          // user's font size (card text is ~84px tall at 1.0x) and cap
+          // the card text at 1.3x so it can never overflow the card.
+          MediaQuery.withClampedTextScaling(
+            maxScaleFactor: 1.3,
+            child: Builder(
+              builder: (context) => SizedBox(
+                height: 212 +
+                    84 * (MediaQuery.textScalerOf(context).scale(1) - 1),
+                child: ListView.separated(
               scrollDirection: Axis.horizontal,
               physics: const BouncingScrollPhysics(),
-              padding: const EdgeInsets.symmetric(horizontal: 12),
+              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.page),
               itemCount: _items.length,
               separatorBuilder: (_, _) => const SizedBox(width: 10),
               itemBuilder: (context, i) => _FeatureCard(
                 spec: _items[i],
                 phase: (i / _items.length),
+              ),
+            ),
               ),
             ),
           ),
@@ -476,8 +509,8 @@ class _FeatureCard extends StatelessWidget {
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: const Color(0xFFE0E3EB)),
+        borderRadius: BorderRadius.circular(AppRadius.sm),
+        border: Border.all(color: AppColors.hairline),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -497,7 +530,7 @@ class _FeatureCard extends StatelessWidget {
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
             style: const TextStyle(
-              color: Color(0xFF212121),
+              color: AppColors.textPrimary,
               fontSize: 13,
               fontWeight: FontWeight.w700,
               height: 1.2,
@@ -509,7 +542,7 @@ class _FeatureCard extends StatelessWidget {
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
             style: const TextStyle(
-              color: Color(0xFF878787),
+              color: AppColors.textSecondary,
               fontSize: 12,
               height: 1.3,
             ),
@@ -520,8 +553,8 @@ class _FeatureCard extends StatelessWidget {
               padding: const EdgeInsets.symmetric(
                   horizontal: 6, vertical: 2),
               decoration: BoxDecoration(
-                color: const Color(0xFF388E3C),
-                borderRadius: BorderRadius.circular(3),
+                color: AppColors.stepGreen,
+                borderRadius: BorderRadius.circular(AppRadius.xs),
               ),
               child: Text(
                 spec.tag!,
@@ -643,7 +676,7 @@ class _AnimatedFeatureIconBoxState extends State<_AnimatedFeatureIconBox>
           alignment: Alignment.center,
           decoration: BoxDecoration(
             color: widget.color.withValues(alpha: 0.08 + 0.06 * breathe),
-            borderRadius: BorderRadius.circular(6),
+            borderRadius: BorderRadius.circular(8),
           ),
           child: ClipRect(
             child: Stack(
@@ -731,14 +764,14 @@ class _SectionTitle extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 14),
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.page),
       child: Row(
         children: [
           Expanded(
             child: Text(
               title,
               style: const TextStyle(
-                color: Color(0xFF212121),
+                color: AppColors.textPrimary,
                 fontSize: 17,
                 fontWeight: FontWeight.w900,
                 letterSpacing: -0.3,
@@ -806,7 +839,7 @@ class _StepRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(14, 8, 14, 8),
+      padding: const EdgeInsets.fromLTRB(AppSpacing.page, 8, AppSpacing.page, 8),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -837,7 +870,7 @@ class _StepRow extends StatelessWidget {
                 Text(
                   step.title,
                   style: const TextStyle(
-                    color: Color(0xFF212121),
+                    color: AppColors.textPrimary,
                     fontSize: 15,
                     fontWeight: FontWeight.w700,
                   ),
@@ -846,7 +879,7 @@ class _StepRow extends StatelessWidget {
                 Text(
                   step.desc,
                   style: const TextStyle(
-                    color: Color(0xFF878787),
+                    color: AppColors.textSecondary,
                     fontSize: 13,
                     height: 1.4,
                   ),
@@ -878,7 +911,7 @@ class _PricingSection extends StatelessWidget {
           const _SectionTitle(title: 'Lifetime plan'),
           const SizedBox(height: 10),
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 14),
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.page),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
@@ -905,7 +938,7 @@ class _PricingSection extends StatelessWidget {
                       const Text(
                         'QR 4 Emergency Kit',
                         style: TextStyle(
-                          color: Color(0xFF212121),
+                          color: AppColors.textPrimary,
                           fontSize: 16,
                           fontWeight: FontWeight.w700,
                         ),
@@ -917,7 +950,7 @@ class _PricingSection extends StatelessWidget {
                           Text(
                             '₹599',
                             style: TextStyle(
-                              color: Color(0xFF212121),
+                              color: AppColors.textPrimary,
                               fontSize: 24,
                               fontWeight: FontWeight.w900,
                               height: 1,
@@ -930,11 +963,11 @@ class _PricingSection extends StatelessWidget {
                             child: Text(
                               '₹999',
                               style: TextStyle(
-                                color: Color(0xFF878787),
+                                color: AppColors.textSecondary,
                                 fontSize: 14,
                                 fontWeight: FontWeight.w600,
                                 decoration: TextDecoration.lineThrough,
-                                decorationColor: Color(0xFF878787),
+                                decorationColor: AppColors.textSecondary,
                               ),
                             ),
                           ),
@@ -944,7 +977,7 @@ class _PricingSection extends StatelessWidget {
                             child: Text(
                               '40% off',
                               style: TextStyle(
-                                color: Color(0xFF388E3C),
+                                color: AppColors.stepGreen,
                                 fontSize: 13,
                                 fontWeight: FontWeight.w900,
                               ),
@@ -962,7 +995,7 @@ class _PricingSection extends StatelessWidget {
           ..._bullets,
           const SizedBox(height: 12),
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 14),
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.page),
             child: _PulsingBuyButton(onTap: onSubscribe),
           ),
         ],
@@ -980,13 +1013,13 @@ class _PricingSection extends StatelessWidget {
   List<Widget> get _bullets => _features
       .map(
         (f) => Padding(
-          padding: const EdgeInsets.fromLTRB(14, 5, 14, 5),
+          padding: const EdgeInsets.fromLTRB(AppSpacing.page, 5, AppSpacing.page, 5),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const Icon(
                 Icons.check_circle_rounded,
-                color: Color(0xFF388E3C),
+                color: AppColors.stepGreen,
                 size: 16,
               ),
               const SizedBox(width: 8),
@@ -994,7 +1027,7 @@ class _PricingSection extends StatelessWidget {
                 child: Text(
                   f,
                   style: const TextStyle(
-                    color: Color(0xFF212121),
+                    color: AppColors.textPrimary,
                     fontSize: 13.5,
                     fontWeight: FontWeight.w500,
                     height: 1.4,
@@ -1061,7 +1094,7 @@ class _TrustCell extends StatelessWidget {
         Text(
           label,
           style: const TextStyle(
-            color: Color(0xFF212121),
+            color: AppColors.textPrimary,
             fontSize: 13,
             fontWeight: FontWeight.w800,
           ),
@@ -1069,7 +1102,7 @@ class _TrustCell extends StatelessWidget {
         Text(
           caption,
           style: const TextStyle(
-            color: Color(0xFF878787),
+            color: AppColors.textSecondary,
             fontSize: 11,
             fontWeight: FontWeight.w500,
           ),

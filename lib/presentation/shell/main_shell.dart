@@ -356,13 +356,17 @@ class _ScanSlot extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 2),
-          const Text(
-            'Scan',
-            style: TextStyle(
-              color: AppColors.primary,
-              fontSize: 11,
-              fontWeight: FontWeight.w900,
-              letterSpacing: 0.4,
+          MediaQuery.withClampedTextScaling(
+            maxScaleFactor: 1.2,
+            child: const Text(
+              'Scan',
+              maxLines: 1,
+              style: TextStyle(
+                color: AppColors.primary,
+                fontSize: 11,
+                fontWeight: FontWeight.w900,
+                letterSpacing: 0.4,
+              ),
             ),
           ),
         ],
@@ -397,13 +401,23 @@ class _NavSlot extends StatelessWidget {
           children: [
             Icon(icon, size: 26, color: color),
             const SizedBox(height: 4),
-            Text(
-              label,
-              style: TextStyle(
-                color: color,
-                fontSize: 12,
-                fontWeight: FontWeight.w700,
-                letterSpacing: 0.2,
+            // The nav pill has a fixed height: cap the label's font
+            // scaling and shrink it to the slot width so "History" /
+            // "Profile" never wrap or overflow at large system font sizes.
+            MediaQuery.withClampedTextScaling(
+              maxScaleFactor: 1.2,
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  label,
+                  maxLines: 1,
+                  style: TextStyle(
+                    color: color,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0.2,
+                  ),
+                ),
               ),
             ),
           ],

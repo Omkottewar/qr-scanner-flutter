@@ -138,8 +138,13 @@ class _HomeCarouselState extends State<HomeCarousel> {
     if (_slides.isEmpty) return const SizedBox.shrink();
     return Column(
       children: [
-        SizedBox(
-          height: 240,
+        // 4:3 locks the hero aspect so admins can target a single set of
+        // upload dimensions (1600×1200 recommended) and have the image
+        // fit identically on every screen size — height scales with the
+        // device width instead of being fixed at a px value that only
+        // matched one aspect by coincidence.
+        AspectRatio(
+          aspectRatio: 4 / 3,
           child: NotificationListener<ScrollNotification>(
             // Pause auto-advance while the user is interacting with the
             // carousel. Resume once the gesture ends so the slideshow
@@ -386,12 +391,11 @@ class _NetworkBg extends StatelessWidget {
   Widget build(BuildContext context) {
     return Image.network(
       slide.imageUrl,
-      // `contain` instead of `cover` so taller/squarer admin uploads
-      // show in full against the card's gradient instead of getting
-      // their top and bottom cropped. Admins upload self-contained
-      // posters where every pixel of text matters, so cropping is
-      // never the right call.
-      fit: BoxFit.contain,
+      // Container is locked to 4:3 (see HomeCarousel.build), so a 4:3
+      // upload fills with zero cropping. `cover` is kept as the safety
+      // net for admins who upload slightly off-ratio — the trim is
+      // imperceptible at a few percent off.
+      fit: BoxFit.cover,
       gaplessPlayback: true,
       loadingBuilder: (context, child, progress) {
         if (progress == null) return child;

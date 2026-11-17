@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_colors.dart';
 import '../widgets/glass_card.dart';
 import '../widgets/notification_bell.dart';
@@ -23,7 +24,7 @@ class CreateQrIntroScreen extends StatelessWidget {
           SafeArea(
             child: SingleChildScrollView(
               physics: const BouncingScrollPhysics(),
-              padding: const EdgeInsets.fromLTRB(24, 0, 24, 128),
+              padding: const EdgeInsets.fromLTRB(AppSpacing.page, 0, AppSpacing.page, AppSpacing.tabBottom),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [

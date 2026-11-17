@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart' show ValueListenable;
 import 'package:flutter/material.dart';
 import 'package:razorpay_flutter/razorpay_flutter.dart';
 
+import '../../core/theme/app_spacing.dart';
 import '../../core/error_messages.dart';
 import '../../core/theme/app_colors.dart';
 import '../../data/api_client.dart';
@@ -152,6 +153,9 @@ class _PaymentScreenState extends State<PaymentScreen> {
         await PendingOrderStore.save(
           orderId: orderId,
           purpose: 'qr_create',
+          // Saved so the QR can still be created on next launch if the
+          // app is killed after payment.
+          createBody: widget.draft.toPaymentJson(),
         );
       }
     } catch (e) {
@@ -407,6 +411,15 @@ class _PaymentScreenState extends State<PaymentScreen> {
     final orderId = r.orderId ?? _orderId ?? '';
     final paymentId = r.paymentId ?? '';
     final signature = r.signature ?? '';
+    // Persist the proof of payment first, so an app kill from here on
+    // can still be finished at next launch (see main.dart).
+    if (orderId.isNotEmpty && paymentId.isNotEmpty && signature.isNotEmpty) {
+      await PendingOrderStore.savePaymentProof(
+        orderId: orderId,
+        paymentId: paymentId,
+        signature: signature,
+      ).catchError((Object e) => debugPrint('[razorpay/success] could not save proof: $e'));
+    }
     try {
       // Server-side visibility for the "SDK said yes" moment. Fire before
       // /qr/create so even a subsequent /qr/create failure leaves a trace
@@ -650,8 +663,10 @@ class _PaymentScreenState extends State<PaymentScreen> {
         );
         return;
       }
-      _rz ??= Razorpay();
-      _rz!
+      // Attach listeners only when the instance is created. Re-attaching
+      // on every retry stacked duplicate handlers, so after one cancel
+      // the next attempt fired every callback twice.
+      _rz ??= Razorpay()
         ..on(Razorpay.EVENT_PAYMENT_SUCCESS, _onRazorpaySuccess)
         ..on(Razorpay.EVENT_PAYMENT_ERROR, _onRazorpayError)
         ..on(Razorpay.EVENT_EXTERNAL_WALLET, _onExternalWallet);
@@ -719,7 +734,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
         children: [
           Expanded(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
+              padding: const EdgeInsets.fromLTRB(AppSpacing.page, 16, AppSpacing.page, AppSpacing.xl),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
@@ -893,7 +908,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
             ),
           ),
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+            padding: const EdgeInsets.fromLTRB(AppSpacing.page, 8, AppSpacing.page, 16),
             child: EaPrimaryButton(
               label: _loading ? 'Please wait…' : 'Pay ₹$rupees',
               loading: _loading,

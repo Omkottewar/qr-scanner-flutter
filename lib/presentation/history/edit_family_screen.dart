@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../core/theme/app_spacing.dart';
 import '../../core/error_messages.dart';
 import '../../core/theme/app_colors.dart';
 import '../../data/api_client.dart';
@@ -195,7 +196,7 @@ class _EditFamilyScreenState extends State<EditFamilyScreen> {
                     children: [
                       Expanded(
                         child: SingleChildScrollView(
-                          padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
+                          padding: const EdgeInsets.fromLTRB(AppSpacing.page, 4, AppSpacing.page, 24),
                           child: Form(
                             key: _formKey,
                             child: Column(

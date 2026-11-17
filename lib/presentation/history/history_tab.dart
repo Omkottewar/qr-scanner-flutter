@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../core/theme/app_spacing.dart';
 import '../../core/error_messages.dart';
 import '../../core/ist_time.dart';
 import '../../core/theme/app_colors.dart';
@@ -223,7 +224,7 @@ class HistoryTabState extends State<HistoryTab> {
             child: Column(
               children: [
                 const Padding(
-                  padding: EdgeInsets.fromLTRB(24, 16, 24, 12),
+                  padding: EdgeInsets.fromLTRB(AppSpacing.page, 16, AppSpacing.page, 12),
                   child: Align(
                     alignment: Alignment.centerLeft,
                     child: _Heading(),
@@ -378,7 +379,7 @@ class _QrTab extends StatelessWidget {
                   : ListView(
                       physics: const BouncingScrollPhysics(
                           parent: AlwaysScrollableScrollPhysics()),
-                      padding: const EdgeInsets.fromLTRB(24, 12, 24, 128),
+                      padding: const EdgeInsets.fromLTRB(AppSpacing.page, 12, AppSpacing.page, AppSpacing.tabBottom),
                       children: [
                         _OverviewCard(total: items.length, active: activeCount),
                         const SizedBox(height: 20),

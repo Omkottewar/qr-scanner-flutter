@@ -150,7 +150,13 @@ class _RenewSheetState extends State<RenewSheet> {
     try {
       final res = await ApiClient.instance.get('/payments/status/$orderId');
       if (res is! Map || res['found'] != true) return false;
-      if (res['status']?.toString() != 'verified') return false;
+      // 'verified' alone only means Razorpay was paid (the webhook can
+      // set it); `consumed` means the renewal was actually applied.
+      // Older servers don't send `consumed`, so fall back to status.
+      final applied = res.containsKey('consumed')
+          ? res['consumed'] == true
+          : res['status']?.toString() == 'verified';
+      if (!applied) return false;
       await PendingOrderStore.clear();
       debugPrint('[renew/verify] recovered via /payments/status');
       return true;
@@ -161,6 +167,18 @@ class _RenewSheetState extends State<RenewSheet> {
   }
 
   void _onSuccess(PaymentSuccessResponse r) {
+    // Save the proof of payment so main.dart can finish the renewal at
+    // next launch if the app is killed before /renew/verify completes.
+    final proofOrderId = r.orderId ?? _orderId ?? '';
+    if (proofOrderId.isNotEmpty &&
+        (r.paymentId ?? '').isNotEmpty &&
+        (r.signature ?? '').isNotEmpty) {
+      PendingOrderStore.savePaymentProof(
+        orderId: proofOrderId,
+        paymentId: r.paymentId!,
+        signature: r.signature!,
+      ).catchError((Object e) => debugPrint('[renew] could not save proof: $e'));
+    }
     // Fire before /renew/verify so a subsequent server-side failure
     // still leaves a "customer paid" trace in Render logs.
     PaymentTracker.report(
@@ -214,8 +232,10 @@ class _RenewSheetState extends State<RenewSheet> {
       _paying = true;
       _error = null;
     });
-    _rz ??= Razorpay();
-    _rz!
+    // Attach listeners only when the instance is created. Re-attaching on
+    // every retry stacked duplicate handlers, so after one cancel the
+    // next attempt fired every callback twice.
+    _rz ??= Razorpay()
       ..on(Razorpay.EVENT_PAYMENT_SUCCESS, _onSuccess)
       ..on(Razorpay.EVENT_PAYMENT_ERROR, _onError);
     _rz!.open({

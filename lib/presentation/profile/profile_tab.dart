@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:local_auth/local_auth.dart';
 
+import '../../core/theme/app_spacing.dart';
 import '../../core/error_messages.dart';
 import '../../core/legal_content.dart';
 import '../../core/theme/app_colors.dart';
@@ -264,7 +265,7 @@ class ProfileTabState extends State<ProfileTab> {
                     ? _ProfileLoadError(message: _loadError!, onRetry: _load)
                     : SingleChildScrollView(
                     physics: const BouncingScrollPhysics(),
-                    padding: const EdgeInsets.fromLTRB(24, 16, 24, 128),
+                    padding: const EdgeInsets.fromLTRB(AppSpacing.page, 16, AppSpacing.page, AppSpacing.tabBottom),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [

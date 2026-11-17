@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 
+import '../../core/theme/app_spacing.dart';
 import '../../core/error_messages.dart';
 import '../../core/legal_content.dart';
 import '../../core/theme/app_colors.dart';
@@ -335,7 +336,7 @@ class _CreateQrFormScreenState extends State<CreateQrFormScreen> {
           children: [
             Expanded(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(16, 8, 16, 120),
+                padding: const EdgeInsets.fromLTRB(AppSpacing.page, 8, AppSpacing.page, AppSpacing.xl),
                 child: Form(
                   key: _formKey,
                   child: Column(
@@ -442,9 +443,13 @@ class _CreateQrFormScreenState extends State<CreateQrFormScreen> {
                             label: 'Blood Group',
                             child: Align(
                               alignment: Alignment.centerLeft,
-                              child: SizedBox(
-                                width: 220,
+                              // Max (not fixed) width so it shrinks on
+                              // narrow screens instead of overflowing.
+                              child: ConstrainedBox(
+                                constraints:
+                                    const BoxConstraints(maxWidth: 220),
                                 child: DropdownButtonFormField<String>(
+                                  isExpanded: true,
                                   // ignore: deprecated_member_use
                                   value: _blood == 'Select blood group'
                                       ? null
@@ -675,7 +680,7 @@ class _CreateQrFormScreenState extends State<CreateQrFormScreen> {
               ),
             ),
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+              padding: const EdgeInsets.fromLTRB(AppSpacing.page, 8, AppSpacing.page, 16),
               child: EaPrimaryButton(
                 label: _submitting ? 'Checking vehicle…' : 'Pay ₹599 & Create QR',
                 icon: Icons.lock_rounded,

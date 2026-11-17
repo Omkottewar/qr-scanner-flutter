@@ -29,10 +29,13 @@ class EaCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(borderRadius),
         border: border ?? Border.all(color: AppColors.hairline, width: 1),
         boxShadow: [
+          // Same soft shadow as GlassCard, so both card styles look alike
+          // when used on the same screen (was alpha 0.35 — muddy on the
+          // light theme).
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.35),
-            blurRadius: 24,
-            offset: const Offset(0, 12),
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 16,
+            offset: const Offset(0, 6),
           ),
         ],
       ),

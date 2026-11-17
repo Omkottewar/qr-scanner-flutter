@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../core/theme/app_spacing.dart';
 import '../../core/error_messages.dart';
 import '../../core/ist_time.dart';
 import '../../core/theme/app_colors.dart';
@@ -212,7 +213,7 @@ class CallHistoryTabState extends State<CallHistoryTab> {
       return _Empty(onRefresh: _load);
     }
     return ListView.builder(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 128),
+      padding: const EdgeInsets.fromLTRB(AppSpacing.page, 8, AppSpacing.page, AppSpacing.tabBottom),
       physics: const BouncingScrollPhysics(
           parent: AlwaysScrollableScrollPhysics()),
       itemCount: _items.length,

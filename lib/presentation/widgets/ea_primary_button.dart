@@ -36,8 +36,10 @@ class _EaPrimaryButtonState extends State<EaPrimaryButton> {
         duration: const Duration(milliseconds: 180),
         opacity: disabled ? 0.55 : 1,
         child: Container(
-          height: 56,
-          padding: const EdgeInsets.symmetric(horizontal: 22),
+          // Minimum (not fixed) height so the label isn't clipped when
+          // the user has a large system font size.
+          constraints: const BoxConstraints(minHeight: 56),
+          padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 12),
           decoration: BoxDecoration(
             gradient: AppColors.brandGradient,
             borderRadius: BorderRadius.circular(16),
@@ -66,13 +68,18 @@ class _EaPrimaryButtonState extends State<EaPrimaryButton> {
                         Icon(widget.icon, size: 18, color: Colors.white),
                         const SizedBox(width: 10),
                       ],
-                      Text(
+                      Flexible(
+                        child: Text(
                         widget.label,
+                        textAlign: TextAlign.center,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
                           color: Colors.white,
                           fontSize: 15,
                           fontWeight: FontWeight.w700,
                           letterSpacing: -0.1,
+                        ),
                         ),
                       ),
                     ],

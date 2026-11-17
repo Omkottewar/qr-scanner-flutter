@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_colors.dart';
 import 'call_history_tab.dart';
 
@@ -33,7 +34,7 @@ class CallHistoryPageState extends State<CallHistoryPage> {
             child: Column(
               children: [
                 const Padding(
-                  padding: EdgeInsets.fromLTRB(24, 16, 24, 12),
+                  padding: EdgeInsets.fromLTRB(AppSpacing.page, 16, AppSpacing.page, 12),
                   child: Align(
                     alignment: Alignment.centerLeft,
                     child: _Heading(),
