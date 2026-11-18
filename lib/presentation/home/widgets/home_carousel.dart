@@ -32,7 +32,7 @@ class HomeCarousel extends StatefulWidget {
 
 class _HomeCarouselState extends State<HomeCarousel> {
   final PageController _controller =
-      PageController(viewportFraction: 0.92);
+      PageController(viewportFraction: _viewportFraction);
   int _index = 0;
   Timer? _autoPlay;
 
@@ -46,6 +46,37 @@ class _HomeCarouselState extends State<HomeCarousel> {
   // guard in build() until GET /api/app/carousel returns something, so
   // users never see stale bundled stock photos.
   List<_Slide> _slides = const [];
+
+  // Width ÷ height of the uploaded banners. Measured from the first
+  // slide's image once it loads, so the cards take the real shape of the
+  // posters admins upload instead of a guessed one (which cropped text
+  // off both edges). 4:3 until the first image is measured.
+  double _aspect = 4 / 3;
+
+  // Page width as a fraction of the screen (neighbours peek in), and the
+  // gap on each side of a card. Used to size the carousel to the card.
+  static const double _viewportFraction = 0.92;
+  static const double _cardGap = 6;
+
+  // Reads the first banner's pixel size. Uses the same NetworkImage key
+  // as Image.network, so it comes from the image cache — no extra download.
+  void _measureAspect(String url) {
+    final stream = NetworkImage(url).resolve(ImageConfiguration.empty);
+    late final ImageStreamListener listener;
+    listener = ImageStreamListener(
+      (info, _) {
+        stream.removeListener(listener);
+        final w = info.image.width;
+        final h = info.image.height;
+        if (!mounted || w <= 0 || h <= 0) return;
+        // Clamp so one odd upload can't make the carousel absurdly tall
+        // or a thin strip.
+        setState(() => _aspect = (w / h).clamp(0.8, 2.4));
+      },
+      onError: (_, _) => stream.removeListener(listener),
+    );
+    stream.addListener(listener);
+  }
 
   @override
   void initState() {
@@ -92,6 +123,7 @@ class _HomeCarouselState extends State<HomeCarousel> {
         _slides = parsed;
         if (_index >= parsed.length) _index = 0;
       });
+      _measureAspect(parsed.first.imageUrl);
     } catch (_) {
       // Swallow — defaults are already on screen and that's a fine
       // fallback for a pure-cosmetic surface.
@@ -138,14 +170,17 @@ class _HomeCarouselState extends State<HomeCarousel> {
     if (_slides.isEmpty) return const SizedBox.shrink();
     return Column(
       children: [
-        // 4:3 locks the hero aspect so admins can target a single set of
-        // upload dimensions (1600×1200 recommended) and have the image
-        // fit identically on every screen size — height scales with the
-        // device width instead of being fixed at a px value that only
-        // matched one aspect by coincidence.
-        AspectRatio(
-          aspectRatio: 4 / 3,
-          child: NotificationListener<ScrollNotification>(
+        // Height is derived from the CARD width (not the screen width) and
+        // the banners' real aspect ratio, so each card has exactly the
+        // shape of the uploaded image. Previously a 4:3 box held cards
+        // only ~92% as wide, so every banner was cropped at the sides.
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final cardWidth =
+                constraints.maxWidth * _viewportFraction - _cardGap * 2;
+            return SizedBox(
+              height: cardWidth / _aspect,
+              child: NotificationListener<ScrollNotification>(
             // Pause auto-advance while the user is interacting with the
             // carousel. Resume once the gesture ends so the slideshow
             // keeps cycling in the background.
@@ -183,13 +218,15 @@ class _HomeCarouselState extends State<HomeCarousel> {
                     );
                   },
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 6),
+                    padding: const EdgeInsets.symmetric(horizontal: _cardGap),
                     child: _SlideCard(slide: slide, isFirst: i == 0),
                   ),
                 );
               },
             ),
-          ),
+              ),
+            );
+          },
         ),
         const SizedBox(height: 16),
         Row(
@@ -224,6 +261,23 @@ class _SlideCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Image-only slides are finished posters (text, logos, phone mock-ups)
+    // uploaded by the admin. Show them exactly as designed: the whole
+    // image, on white, with no tint or accent strip painted over it.
+    if (slide.title.isEmpty) {
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(18),
+        child: ColoredBox(
+          color: Colors.white,
+          child: _SlideBackground(
+            slide: slide,
+            showShieldOnError: isFirst,
+            fit: BoxFit.contain,
+          ),
+        ),
+      );
+    }
+
     return ClipRRect(
       borderRadius: BorderRadius.circular(22),
       child: Container(
@@ -233,13 +287,6 @@ class _SlideCard extends StatelessWidget {
             end: Alignment.bottomRight,
             colors: slide.gradient,
           ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.4),
-              blurRadius: 40,
-              offset: const Offset(0, 18),
-            ),
-          ],
         ),
         child: Stack(
           fit: StackFit.expand,
@@ -372,30 +419,43 @@ class _SlideCard extends StatelessWidget {
 }
 
 class _SlideBackground extends StatelessWidget {
-  const _SlideBackground({required this.slide, required this.showShieldOnError});
+  const _SlideBackground({
+    required this.slide,
+    required this.showShieldOnError,
+    this.fit = BoxFit.cover,
+  });
   final _Slide slide;
   final bool showShieldOnError;
+  final BoxFit fit;
 
   @override
   Widget build(BuildContext context) {
-    return _NetworkBg(slide: slide, showShieldOnError: showShieldOnError);
+    return _NetworkBg(
+        slide: slide, showShieldOnError: showShieldOnError, fit: fit);
   }
 }
 
 class _NetworkBg extends StatelessWidget {
-  const _NetworkBg({required this.slide, required this.showShieldOnError});
+  const _NetworkBg({
+    required this.slide,
+    required this.showShieldOnError,
+    required this.fit,
+  });
   final _Slide slide;
   final bool showShieldOnError;
+  final BoxFit fit;
 
   @override
   Widget build(BuildContext context) {
     return Image.network(
       slide.imageUrl,
-      // Container is locked to 4:3 (see HomeCarousel.build), so a 4:3
-      // upload fills with zero cropping. `cover` is kept as the safety
-      // net for admins who upload slightly off-ratio — the trim is
-      // imperceptible at a few percent off.
-      fit: BoxFit.cover,
+      // The carousel is sized to the banners' measured aspect ratio, so
+      // a banner of that shape fills the card exactly. Poster slides use
+      // `contain` so a banner of a different shape is shown whole (with
+      // a thin white margin) rather than having its text cropped.
+      fit: fit,
+      width: double.infinity,
+      height: double.infinity,
       gaplessPlayback: true,
       loadingBuilder: (context, child, progress) {
         if (progress == null) return child;

@@ -138,7 +138,7 @@ class _NotificationListScreenState extends State<NotificationListScreen> {
                           Icon(
                             Icons.notifications_none_rounded,
                             size: 64,
-                            color: AppColors.textSecondary.withOpacity(0.35),
+                            color: AppColors.textSecondary.withValues(alpha: 0.35),
                           ),
                           const SizedBox(height: 18),
                           Text(
@@ -177,10 +177,10 @@ class _NotificationListScreenState extends State<NotificationListScreen> {
                                 }
                               },
                               child: EaCard(
-                                background: isRead ? AppColors.card : AppColors.card.withOpacity(0.85),
+                                background: isRead ? AppColors.card : AppColors.card.withValues(alpha: 0.85),
                                 border: isRead
                                     ? Border.all(color: AppColors.hairline)
-                                    : Border.all(color: AppColors.primary.withOpacity(0.4), width: 1.5),
+                                    : Border.all(color: AppColors.primary.withValues(alpha: 0.4), width: 1.5),
                                 child: Row(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
@@ -189,7 +189,7 @@ class _NotificationListScreenState extends State<NotificationListScreen> {
                                       decoration: BoxDecoration(
                                         color: isRead
                                             ? AppColors.inputFill
-                                            : AppColors.primary.withOpacity(0.12),
+                                            : AppColors.primary.withValues(alpha: 0.12),
                                         shape: BoxShape.circle,
                                       ),
                                       child: Icon(
